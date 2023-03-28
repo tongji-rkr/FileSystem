@@ -1,3 +1,6 @@
+// fqh
+#include "Machine.h"
+#include "SecondFileKernel.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -5,23 +8,20 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <iostream>
-#include "DiskDrive.h"
 using namespace std;
 
-DiskDrive::DiskDrive()
+Machine::Machine()
 {
 }
-
-DiskDrive::~DiskDrive()
+Machine::~Machine()
 {
 }
-
-void DiskDrive::Initialize()
+void Machine::Initialize()
 {
-    // 获取Keneral的BufferManager引用
+    // 0. 取得 BufferManager
     this->m_BufferManager = &SecondFileKernel::Instance().GetBufferManager();
 
-    // 打开磁盘缓存
+    // 1. 打开文件
     int fd = open(devpath, O_RDWR);
     if (fd == -1)
     {
@@ -35,15 +35,14 @@ void DiskDrive::Initialize()
         this->init_img(fd);
         // cout << "[INFO] 磁盘初始化完毕." <<endl;
     }
-    // 磁盘映射mmap
+    // 2. mmap
     mmap_img(fd);
-
     this->img_fd = fd;
     cout << "[info] 磁盘mmap映射完毕." << endl;
 }
 
 // 文件系统退出
-void DiskDrive::quit()
+void Machine::quit()
 {
     struct stat st; //定义文件信息结构体
     /*取得文件大小*/
@@ -59,7 +58,7 @@ void DiskDrive::quit()
     
 }
 
-void DiskDrive::init_spb(SuperBlock& sb)
+void Machine::init_spb(SuperBlock& sb)
 {
     sb.s_isize = FileSystem::INODE_ZONE_SIZE;
     sb.s_fsize = FileSystem::DATA_ZONE_END_SECTOR + 1;
@@ -88,7 +87,7 @@ void DiskDrive::init_spb(SuperBlock& sb)
     sb.s_ronly = 0;
 }
 
-void DiskDrive::init_db(char* data)
+void Machine::init_db(char* data)
 {
     struct
     {
@@ -121,7 +120,7 @@ void DiskDrive::init_db(char* data)
     }
 }
 
-void DiskDrive::init_img(int fd)
+void Machine::init_img(int fd)
 {
     SuperBlock spb;
     init_spb(spb);
@@ -143,7 +142,7 @@ void DiskDrive::init_img(int fd)
     printf("[info] 格式化磁盘完毕...");
 }
 
-void DiskDrive::mmap_img(int fd)
+void Machine::mmap_img(int fd)
 {
     struct stat st; //定义文件信息结构体
     /*取得文件大小*/
