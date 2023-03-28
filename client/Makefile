@@ -10,7 +10,7 @@ SOURCE = $(wildcard *.cpp)
 OBJ = $(patsubst %.cpp,$(OBJ_PATH)%.o,$(SOURCE))
 
 HEADER = $(wildcard $(INC_PATH)*.h)
-TAR = server
+TAR = client
 
 all:$(TAR)
 
