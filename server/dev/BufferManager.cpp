@@ -1,276 +1,533 @@
+/*
+ * @Description: this file defines the class BufferManager
+ * @Date: 2022-09-05 14:30:16
+ * @LastEditTime: 2023-04-02 15:56:26
+ */
+
 #include "BufferManager.h"
-#include "SecondFileKernel.h"
-#include<string.h>
-#include<iostream>
-using namespace std;
+#include "Kernel.h"
+
 BufferManager::BufferManager()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 BufferManager::~BufferManager()
 {
-	//nothing to do here
+	// nothing to do here
 }
-
+// ³õÊ¼»¯
 void BufferManager::Initialize()
 {
-	cout<<"Initalize..."<<endl;
 	int i;
-	Buf* bp;
+	Buf *bp;
 
+	// ÓÉÓÚÄ¿Ç°¸÷¸ö¶ÓÁĞ¶¼ÊÇ¿ÕµÄ£¬ËùÒÔÈÃ×ÔÓÉ»º´æ¿ØÖÆ¿é¶ÓÁĞ¹´Á¬Ö¸Õë¶¼Ö¸ÏòÆä×ÔÉí
 	this->bFreeList.b_forw = this->bFreeList.b_back = &(this->bFreeList);
-	// this->bFreeList.av_forw = this->bFreeList.av_back = &(this->bFreeList);
+	this->bFreeList.av_forw = this->bFreeList.av_back = &(this->bFreeList);
 
-	for(i = 0; i < NBUF; i++)
+	for (i = 0; i < NBUF; i++)
 	{
-		// æ§åˆ¶çš„
 		bp = &(this->m_Buf[i]);
-		// bp->b_dev = -1;
-		// å­˜çš„
-		bp->b_addr = this->Buffer[i];
-		/* åˆå§‹åŒ–NODEVé˜Ÿåˆ— */
-		bp->b_back = &(this->bFreeList);
-		bp->b_forw = this->bFreeList.b_forw;
-		// é“¾è¡¨ä¸­æ’å…¥
-		this->bFreeList.b_forw->b_back = bp;
-		this->bFreeList.b_forw = bp;
-		/* åˆå§‹åŒ–è‡ªç”±é˜Ÿåˆ— */
-		pthread_mutex_init(&bp->buf_lock, NULL);
-		pthread_mutex_lock(&bp->buf_lock);
-		bp->b_flags = Buf::B_BUSY;
-		Brelse(bp);
-
+		bp->b_dev = -1;				  // Ö÷Éè±¸ºÅºÍ´ÎÉè±¸ºÅ³õÊ¼»¯ÎªËùÓĞÎ»¶¼ÓÉ1×é³É
+		bp->b_addr = this->Buffer[i]; // Ö¸ÏòËù¹ÜÀíµÄ»º³åÇøµÄÊ×µØÖ·
+		/* ³õÊ¼»¯NODEV¶ÓÁĞ */
+		bp->b_back = &(this->bFreeList);	 // Ö¸Ïò×ÔÓÉ¶ÓÁĞµÄ¶ÓÎ²
+		bp->b_forw = this->bFreeList.b_forw; // Ö¸Ïò×ÔÓÉ¶ÓÁĞµÄ¶ÓÊ×
+		this->bFreeList.b_forw->b_back = bp; // ×ÔÓÉ¶ÓÁĞµÄ¶ÓÊ×µÄÇ°ÇıÖ¸Ïòbp
+		this->bFreeList.b_forw = bp;		 // ×ÔÓÉ¶ÓÁĞµÄ¶ÓÊ×Ö¸Ïòbp
+		/* ³õÊ¼»¯×ÔÓÉ¶ÓÁĞ */
+		bp->b_flags = Buf::B_BUSY; // ÖÃÃ¦±êÖ¾
+		Brelse(bp);				   // ½âËø
 	}
-	// this->m_DeviceManager = &Kernel::Instance().GetDeviceManager();
+	// Ö¸ÏòÉè±¸¹ÜÀíÄ£¿éÈ«¾Ö¶ÔÏó
+	this->m_DeviceManager = &Kernel::Instance().GetDeviceManager();
 	return;
 }
 
+// ¸ø»º´æ¿éÉÏËø£¬Ëø×¡»º´æ³ØÖĞ£¬ÓÃÀ´×°<dev,blkno>µÄ»º´æ¿é
+Buf *BufferManager::GetBlk(short dev, int blkno)
+{
+	Buf *bp;
+	Devtab *dp;
+	User &u = Kernel::Instance().GetUser(); // »ñÈ¡µ±Ç°µÄuser½á¹¹
 
-Buf* BufferManager::GetBlk(int blkno){
-	
-	Buf*headbp=&this->bFreeList; //å–å¾—è‡ªæœ‰ç¼“å­˜é˜Ÿåˆ—çš„é˜Ÿé¦–åœ°å€
-	Buf*bp; //è¿”å›çš„bp 
-	// æŸ¥çœ‹bFreeListä¸­æ˜¯å¦å·²ç»æœ‰è¯¥å—çš„ç¼“å­˜, æœ‰å°±è¿”å›
-	for (bp = headbp->b_forw; bp != headbp; bp = bp->b_forw)
+	/* Èç¹ûÖ÷Éè±¸ºÅ³¬³öÁËÏµÍ³ÖĞ¿éÉè±¸ÊıÁ¿ */
+	if (Utility::GetMajor(dev) >= this->m_DeviceManager->GetNBlkDev())
 	{
-		//cout<<"block_no"<<bp->b_blkno<<endl;
-		if (bp->b_blkno != blkno)
-			continue;
-		bp->b_flags |= Buf::B_BUSY;
-		pthread_mutex_lock(&bp->buf_lock);
-		//cout << "åœ¨ç¼“å­˜é˜Ÿåˆ—ä¸­æ‰¾åˆ°å¯¹åº”çš„ç¼“å­˜ï¼Œç½®ä¸ºbusyï¼ŒGetBlkè¿”å› blkno=" <<blkno<< endl;
-		return bp;
+		Utility::Panic("nblkdev: There doesn't exist the device"); // Êä³ö´íÎóĞÅÏ¢
 	}
 
-	// æ²¡æœ‰åˆ°é˜Ÿå¤´æ‰¾
-	//bp = headbp->b_forw;
-	int success = false;
-	for (bp = headbp->b_forw; bp != headbp; bp = bp->b_forw)
+	/*
+	 * Èç¹ûÉè±¸¶ÓÁĞÖĞÒÑ¾­´æÔÚÏàÓ¦»º´æ£¬Ôò·µ»Ø¸Ã»º´æ£»
+	 * ·ñÔò´Ó×ÔÓÉ¶ÓÁĞÖĞ·ÖÅäĞÂµÄ»º´æÓÃÓÚ×Ö·û¿é¶ÁĞ´¡£
+	 */
+loop:
+	/* ±íÊ¾ÇëÇóNODEVÉè±¸ÖĞ×Ö·û¿é */
+	if (dev < 0)
 	{
-		// æ£€æŸ¥è¯¥bufæ˜¯å¦ä¸Šé”
-		if(pthread_mutex_trylock(&bp->buf_lock)==0){
-			success = true;
-			break;
+		dp = (Devtab *)(&this->bFreeList);
+	}
+	else
+	{
+		short major = Utility::GetMajor(dev); // Ö÷Éè±¸ºÅ
+		/* ¸ù¾İÖ÷Éè±¸ºÅ»ñµÃ¿éÉè±¸±í */
+		dp = this->m_DeviceManager->GetBlockDevice(major).d_tab;
+
+		// Èç¹ûÃ»ÓĞ¿éÉè±¸±íÔòĞèÒª±¨´í
+		if (dp == NULL)
+		{
+			Utility::Panic("Null devtab!");
 		}
-		printf("[DEBUG] bufå·²è¢«é”ï¼Œblkno=%d b_addr=%p\n", bp->b_blkno, bp->b_addr);
-	}
-	if(success == false){
-		bp = headbp->b_forw;
-		printf("[INFO]ç³»ç»Ÿç¼“å­˜å·²ç”¨å®Œï¼Œç­‰å¾…é˜Ÿé¦–ç¼“å­˜è§£é”...\n");
-		pthread_mutex_lock(&bp->buf_lock); // ç­‰å¾…ç¬¬ä¸€ä¸ªç¼“å­˜å—è§£é”ã€‚
-		printf("[INFO]ç³»ç»ŸæˆåŠŸå¾—åˆ°é˜Ÿé¦–ç¼“å­˜å—...\n");
-	}
-	if (bp->b_flags&Buf::B_DELWRI)
+		/* Ê×ÏÈÔÚ¸ÃÉè±¸¶ÓÁĞÖĞËÑË÷ÊÇ·ñÓĞÏàÓ¦µÄ»º´æ */
+		for (bp = dp->b_forw; bp != (Buf *)dp; bp = bp->b_forw)
+		{
+			/* ²»ÊÇÒªÕÒµÄ»º´æ£¬Ôò¼ÌĞø */
+			if (bp->b_blkno != blkno || bp->b_dev != dev)
+				continue;
+
+			/*
+			 * ÁÙ½çÇøÖ®ËùÒÔÒª´ÓÕâÀï¿ªÊ¼£¬¶ø²»ÊÇ´ÓÉÏÃæµÄforÑ­»·¿ªÊ¼¡£
+			 * Ö÷ÒªÊÇÒòÎª£¬ÖĞ¶Ï·şÎñ³ÌĞò²¢²»»áÈ¥ĞŞ¸Ä¿éÉè±¸±íÖĞµÄ
+			 * Éè±¸buf¶ÓÁĞ(b_forw)£¬ËùÒÔ²»»áÒıÆğ³åÍ»¡£
+			 */
+			X86Assembly::CLI();			   // ¹ØÖĞ¶Ï
+			if (bp->b_flags & Buf::B_BUSY) // Èç¹ûÄ¿Ç°¸Ã»º´æ¿éÒÑ¾­±»Ê¹ÓÃÁË
+			{
+				bp->b_flags |= Buf::B_WANTED;								 // ¸Ã»º´æ¿é±»µÈ´ıÊ¹ÓÃ
+				u.u_procp->Sleep((unsigned long)bp, ProcessManager::PRIBIO); // ½ø³ÌÈëË¯
+				X86Assembly::STI();											 // ¿ªÖĞ¶Ï
+				goto loop;													 // ¼ÌĞøÑ­»·
+			}
+			X86Assembly::STI(); // ¿ªÖĞ¶Ï
+			/* ´Ó×ÔÓÉ¶ÓÁĞÖĞ³éÈ¡³öÀ´ */
+			this->NotAvail(bp);
+			return bp;
+		}
+	} // end of else
+	/*Èç¹ûÔËĞĞµ½ÕâÀïËµÃ÷ÔÚ¸ÃÉè±¸¶ÓÁĞÖĞÃ»ÓĞÕÒµ½¶ÔÓ¦µÄ»º´æ£¬
+	 * ¼´»º´æ²»ÃüÖĞ£¬ÄÇÃ´¾ÍĞèÒªÓÃÒ»¸ö×ÔÓÉ»º´æ¶ÓÁĞÖĞµÄ»º´æ¿éÀ´´æÕâ¸ö»º´æ
+	 * */
+
+	X86Assembly::CLI();
+	/* Èç¹û×ÔÓÉ¶ÓÁĞÎª¿Õ */
+	if (this->bFreeList.av_forw == &this->bFreeList)
 	{
-		this->Bwrite(bp);                  // å†™å›ç£ç›˜ï¼Œå¹¶è§£é”
-		pthread_mutex_lock(&bp->buf_lock); // é©¬ä¸Šä¸Šé”
+		this->bFreeList.b_flags |= Buf::B_WANTED;								   // ÖÃµÈ´ı±êÖ¾
+		u.u_procp->Sleep((unsigned long)&this->bFreeList, ProcessManager::PRIBIO); // ÈëË¯
+		X86Assembly::STI();														   // ¿ªÖĞ¶Ï
+		goto loop;																   // ÈëË¯Ñ­»·µÈ´ı
 	}
-	//æ³¨ï¼šè¿™é‡Œæ¸…ç©ºäº†å…¶ä»–æ‰€æœ‰çš„æ ‡å¿—ï¼Œåªç½®ä¸ºbusy
+	X86Assembly::STI(); // ¿ªÖĞ¶Ï
+
+	/* È¡×ÔÓÉ¶ÓÁĞµÚÒ»¸ö¿ÕÏĞ¿é */
+	bp = this->bFreeList.av_forw;
+	this->NotAvail(bp);
+
+	/* Èç¹û¸Ã×Ö·û¿éÊÇÑÓ³ÙĞ´£¬½«ÆäÒì²½Ğ´µ½´ÅÅÌÉÏ */
+	if (bp->b_flags & Buf::B_DELWRI)
+	{
+		bp->b_flags |= Buf::B_ASYNC; // ÖÃÒì²½±êÖ¾
+		this->Bwrite(bp);			 // Òì²½Ğ´»ØÈ¥
+		goto loop;					 // Ñ­»·
+	}
+	/* ×¢Òâ: ÕâÀïÇå³ıÁËËùÓĞÆäËûÎ»£¬Ö»ÉèÁËB_BUSY */
 	bp->b_flags = Buf::B_BUSY;
-	//æ³¨ï¼šæˆ‘è¿™é‡Œçš„æ“ä½œæ˜¯å°†å¤´èŠ‚ç‚¹å˜æˆå°¾èŠ‚ç‚¹
-	// bp->b_back->b_forw = bp->b_forw;
-	// bp->b_forw->b_back = bp->b_back;
 
-	// bp->b_back = this->bFreeList.b_back->b_forw;
-	// this->bFreeList.b_back->b_forw = bp;
-	// bp->b_forw = &this->bFreeList;
-	// this->bFreeList.b_back = bp;
+	/* ´ÓÔ­Éè±¸¶ÓÁĞÖĞ³é³ö */
+	bp->b_back->b_forw = bp->b_forw; // Ô­À´Á´±íÖĞ¸ÃÏîÇ°Ò»ÏîµÄºóÒ»Ïî±ä³É¸ÃÏîµÄºóÒ»Ïî
+	bp->b_forw->b_back = bp->b_back; // Ô­À´Á´±íÖĞ¸ÃÏîºóÒ»ÏîµÄÇ°Ò»Ïî±ä³É¸ÃÏîµÄÇ°Ò»Ïî
+	/* ¼ÓÈëĞÂµÄÉè±¸¶ÓÁĞ */
+	bp->b_forw = dp->b_forw;
+	bp->b_back = (Buf *)dp;
+	dp->b_forw->b_back = bp;
+	dp->b_forw = bp;
 
-	bp->b_blkno = blkno;
-//	cout << "æˆåŠŸåˆ†é…åˆ°å¯ç”¨çš„ç¼“å­˜ï¼ŒgetBlkå°†æˆåŠŸè¿”å›" << endl;
+	bp->b_dev = dev;	 // ĞŞ¸Ä¸Ã»º´æ¿éµÄÉè±¸ºÅ
+	bp->b_blkno = blkno; // ĞŞ¸Ä¸Ã»º´æ¿éµÄ¿éºÅ
 	return bp;
 }
-// è¿™æ˜¯å¹²å•¥çš„
-// å¯èƒ½æ˜¯é‡Šæ”¾çš„
-void BufferManager::Brelse(Buf* bp)
+
+/*»º´æÊ¹ÓÃÍê±Ï£¬½øĞĞÊÍ·Å*/
+void BufferManager::Brelse(Buf *bp)
 {
-	/* æ³¨æ„ä»¥ä¸‹æ“ä½œå¹¶æ²¡æœ‰æ¸…é™¤B_DELWRIã€B_WRITEã€B_READã€B_DONEæ ‡å¿—
-	 * B_DELWRIè¡¨ç¤ºè™½ç„¶å°†è¯¥æ§åˆ¶å—é‡Šæ”¾åˆ°è‡ªç”±é˜Ÿåˆ—é‡Œé¢ï¼Œä½†æ˜¯æœ‰å¯èƒ½è¿˜æ²¡æœ‰äº›åˆ°ç£ç›˜ä¸Šã€‚
-	 * B_DONEåˆ™æ˜¯æŒ‡è¯¥ç¼“å­˜çš„å†…å®¹æ­£ç¡®åœ°åæ˜ äº†å­˜å‚¨åœ¨æˆ–åº”å­˜å‚¨åœ¨ç£ç›˜ä¸Šçš„ä¿¡æ¯ 
+	ProcessManager &procMgr = Kernel::Instance().GetProcessManager(); // »ñÈ¡µ±Ç°µÄ½ø³Ì¹ÜÀíÀà
+
+	// Èç¹û»º´æ¿ébp»¹ÔÚ±»µÈ´ıÊ¹ÓÃ£¬»½ĞÑµÈ´ı¸Ã»º´æ¿éµÄ½ø³Ì
+	if (bp->b_flags & Buf::B_WANTED)
+	{
+		procMgr.WakeUpAll((unsigned long)bp);
+	}
+
+	/* Èç¹ûÓĞ½ø³ÌÕıÔÚµÈ´ı·ÖÅä×ÔÓÉ¶ÓÁĞÖĞµÄ»º´æ£¬Ôò»½ĞÑÏàÓ¦½ø³Ì£¨ÒòÎªÊÍ·ÅÁËÏÖÔÚÕâ¸ö½ø³Ì£¬Ëü¾Í³É×ÔÓÉµÄÁË£© */
+	if (this->bFreeList.b_flags & Buf::B_WANTED)
+	{
+		/* Çå³şB_WANTED±êÖ¾£¬±íÊ¾ÒÑÓĞ¿ÕÏĞ»º´æ */
+		this->bFreeList.b_flags &= (~Buf::B_WANTED);
+		procMgr.WakeUpAll((unsigned long)&this->bFreeList); // »½ĞÑµÈ´ı×ÔÓÉ»º´æµÄ½ø³Ì
+	}
+
+	/* Èç¹ûÓĞ´íÎó·¢Éú£¬Ôò½«´ÎÉè±¸ºÅ¸Äµô£¬
+	 * ±ÜÃâºóĞø½ø³ÌÎóÓÃ»º³åÇøÖĞµÄ´íÎóÊı¾İ¡£
 	 */
-	bp->b_flags &= ~(Buf::B_WANTED | Buf::B_BUSY | Buf::B_ASYNC);
-	pthread_mutex_unlock(&bp->buf_lock);
-	//printf("[DEBUG] é‡Šæ”¾ç¼“å­˜å— b")
+	if (bp->b_flags & Buf::B_ERROR)
+	{
+		Utility::SetMinor(bp->b_dev, -1);
+	}
+
+	/* ÁÙ½ç×ÊÔ´£¬±ÈÈç£ºÔÚÍ¬²½¶ÁÄ©ÆÚ»áµ÷ÓÃÕâ¸öº¯Êı£¬
+	 * ´ËÊ±ºÜÓĞ¿ÉÄÜ»á²úÉú´ÅÅÌÖĞ¶Ï£¬Í¬Ñù»áµ÷ÓÃÕâ¸öº¯Êı¡£
+	 */
+	X86Assembly::CLI(); /* spl6();  UNIX V6µÄ×ö·¨ */
+
+	/* ×¢ÒâÒÔÏÂ²Ù×÷²¢Ã»ÓĞÇå³ıB_DELWRI¡¢B_WRITE¡¢B_READ¡¢B_DONE±êÖ¾
+	 * B_DELWRI±íÊ¾ËäÈ»½«¸Ã¿ØÖÆ¿éÊÍ·Åµ½×ÔÓÉ¶ÓÁĞÀïÃæ£¬µ«ÊÇÓĞ¿ÉÄÜ»¹Ã»ÓĞĞ©µ½´ÅÅÌÉÏ¡£
+	 * B_DONEÔòÊÇÖ¸¸Ã»º´æµÄÄÚÈİÕıÈ·µØ·´Ó³ÁË´æ´¢ÔÚ»òÓ¦´æ´¢ÔÚ´ÅÅÌÉÏµÄĞÅÏ¢
+	 */
+	bp->b_flags &= ~(Buf::B_WANTED | Buf::B_BUSY | Buf::B_ASYNC); // Çå³ıB_WANTED£¬B_BUSY£¬B_ASYNC
+	(this->bFreeList.av_back)->av_forw = bp;					  // °Ñbp²åµ½×ÔÓÉ»º´æ¶ÓÁĞµÄ¶ÓÎ²
+	bp->av_back = this->bFreeList.av_back;						  // bpµÄÇ°Ò»¸ö»º´æ¿é¾Í³ÉÔ­À´×ÔÓÉ»º´æ¶ÓÁĞ¶ÓÎ²µÄ»º´æ¿é
+	bp->av_forw = &(this->bFreeList);							  // bpºóÃæÃ»ÓĞ±ğµÄ»º´æ¿éÁË
+	this->bFreeList.av_back = bp;								  // bp³ÉÎªÁË×ÔÓÉ»º´æ¶ÓÁĞµÄ¶ÓÎ²
+
+	X86Assembly::STI(); // ¿ªÖĞ¶Ï
 	return;
 }
 
-
-Buf* BufferManager::Bread(int blkno)
+/*½ø³ÌÈëË¯µÈµÈ´ıIOÍê³É*/
+void BufferManager::IOWait(Buf *bp)
 {
-	Buf* bp;
-	/* å­—ç¬¦å—å·ç”³è¯·ç¼“å­˜ */
-	bp = this->GetBlk(blkno);
-	/* å¦‚æœåœ¨è®¾å¤‡é˜Ÿåˆ—ä¸­æ‰¾åˆ°æ‰€éœ€ç¼“å­˜ï¼Œå³B_DONEå·²è®¾ç½®ï¼Œå°±ä¸éœ€è¿›è¡ŒI/Oæ“ä½œ */
-	if(bp->b_flags & Buf::B_DONE)
+	User &u = Kernel::Instance().GetUser(); // »ñÈ¡µ±Ç°µÄuser½á¹¹
+
+	/* ÕâÀïÉæ¼°µ½ÁÙ½çÇø
+	 * ÒòÎªÔÚÖ´ĞĞÕâ¶Î³ÌĞòµÄÊ±ºò£¬ºÜÓĞ¿ÉÄÜ³öÏÖÓ²ÅÌÖĞ¶Ï£¬
+	 * ÔÚÓ²ÅÌÖĞ¶ÏÖĞ£¬½«»áĞŞ¸ÄB_DONEÈç¹û´ËÊ±ÒÑ¾­½øÈëÑ­»·
+	 * Ôò½«Ê¹µÃ¸Ä½ø³ÌÓÀÔ¶Ë¯Ãß
+	 */
+	X86Assembly::CLI(); // ¹ØÖĞ¶Ï
+	/*Èç¹ûbp¿éµÄIOÒ»Ö±Ã»Íê³É¾ÍÒ»Ö±ÈëË¯*/
+	while ((bp->b_flags & Buf::B_DONE) == 0)
+	{
+		u.u_procp->Sleep((unsigned long)bp, ProcessManager::PRIBIO); // ½ø³ÌÈëË¯£¬ÒòÎªµÈ´ıIO
+	}
+	X86Assembly::STI(); // ¿ªÖĞ¶Ï
+
+	this->GetError(bp); // ²é¿´ÓĞÃ»ÓĞ´íÎó·¢Éú
+	return;
+}
+
+/*»º´æ¿ébp IOÍê³ÉºóµÄ´¦Àí*/
+void BufferManager::IODone(Buf *bp)
+{
+	/* ÖÃÉÏI/OÍê³É±êÖ¾ */
+	bp->b_flags |= Buf::B_DONE;
+	if (bp->b_flags & Buf::B_ASYNC)
+	{
+		/* Èç¹ûÊÇÒì²½²Ù×÷,Á¢¼´ÊÍ·Å»º´æ¿é */
+		this->Brelse(bp);
+	}
+	else
+	{
+		/* Çå³ıB_WANTED±êÖ¾Î»£¬»½ĞÑµÈ´ıIOÍê³ÉµÄ½ø³Ì */
+		bp->b_flags &= (~Buf::B_WANTED);
+		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)bp); // »½ĞÑµÈ´ıbpµÄ½ø³Ì
+	}
+	return;
+}
+
+/*½«´ÅÅÌ dev ÉÏµÄÊı¾İ¿é blkno£¬Í¬²½¶ÁÈë bp ¹ÜÀíµÄ»º´æ*/
+Buf *BufferManager::Bread(short dev, int blkno)
+{
+	Buf *bp;
+	/* ¸ù¾İÉè±¸ºÅ£¬×Ö·û¿éºÅÉêÇë»º´æ */
+	bp = this->GetBlk(dev, blkno);
+	/* Èç¹ûÔÚÉè±¸¶ÓÁĞÖĞÕÒµ½ËùĞè»º´æ£¬¼´B_DONEÒÑÉèÖÃ£¬¾Í²»Ğè½øĞĞI/O²Ù×÷ */
+	if (bp->b_flags & Buf::B_DONE)
 	{
 		return bp;
 	}
-	/* æ²¡æœ‰æ‰¾åˆ°ç›¸åº”ç¼“å­˜ï¼Œæ„æˆI/Oè¯»è¯·æ±‚å— */
-	bp->b_flags |= Buf::B_READ;
-	bp->b_wcount = BufferManager::BUFFER_SIZE;
-	// æ‹·è´åˆ°å†…å­˜
-	memcpy(bp->b_addr,&this->p[BufferManager::BUFFER_SIZE*bp->b_blkno],BufferManager::BUFFER_SIZE);
-	/* 
-	 * å°†I/Oè¯·æ±‚å—é€å…¥ç›¸åº”è®¾å¤‡I/Oè¯·æ±‚é˜Ÿåˆ—ï¼Œå¦‚æ— å…¶å®ƒI/Oè¯·æ±‚ï¼Œåˆ™å°†ç«‹å³æ‰§è¡Œæœ¬æ¬¡I/Oè¯·æ±‚ï¼›
-	 * å¦åˆ™ç­‰å¾…å½“å‰I/Oè¯·æ±‚æ‰§è¡Œå®Œæ¯•åï¼Œç”±ä¸­æ–­å¤„ç†ç¨‹åºå¯åŠ¨æ‰§è¡Œæ­¤è¯·æ±‚ã€‚
-	 * æ³¨ï¼šStrategy()å‡½æ•°å°†I/Oè¯·æ±‚å—é€å…¥è®¾å¤‡è¯·æ±‚é˜Ÿåˆ—åï¼Œä¸ç­‰I/Oæ“ä½œæ‰§è¡Œå®Œæ¯•ï¼Œå°±ç›´æ¥è¿”å›ã€‚
+	/* Ã»ÓĞÕÒµ½ÏàÓ¦»º´æ£¬¹¹³ÉI/O¶ÁÇëÇó¿é */
+	bp->b_flags |= Buf::B_READ;				   // ×¼±¸¶Á±êÖ¾
+	bp->b_wcount = BufferManager::BUFFER_SIZE; // ÉèÖÃĞèÒª´«ËÍµÄ×Ö½ÚÊı
+
+	/*
+	 * ½«I/OÇëÇó¿éËÍÈëÏàÓ¦Éè±¸I/OÇëÇó¶ÓÁĞ£¬ÈçÎŞÆäËüI/OÇëÇó£¬Ôò½«Á¢¼´Ö´ĞĞ±¾´ÎI/OÇëÇó£»
+	 * ·ñÔòµÈ´ıµ±Ç°I/OÇëÇóÖ´ĞĞÍê±Ïºó£¬ÓÉÖĞ¶Ï´¦Àí³ÌĞòÆô¶¯Ö´ĞĞ´ËÇëÇó¡£
+	 * ×¢£ºStrategy()º¯Êı½«I/OÇëÇó¿éËÍÈëÉè±¸ÇëÇó¶ÓÁĞºó£¬²»µÈI/O²Ù×÷Ö´ĞĞÍê±Ï£¬¾ÍÖ±½Ó·µ»Ø¡£
 	 */
-	// this->m_DeviceManager->GetBlockDevice(Utility::GetMajor(dev)).Strategy(bp);
-	/* åŒæ­¥è¯»ï¼Œç­‰å¾…I/Oæ“ä½œç»“æŸ */
-	// this->IOWait(bp);
+	this->m_DeviceManager->GetBlockDevice(Utility::GetMajor(dev)).Strategy(bp);
+	/* Í¬²½¶Á£¬µÈ´ıI/O²Ù×÷½áÊø */
+	this->IOWait(bp);
 	return bp;
 }
 
+/*Ô¤¶Áº¯Êı£¬¶ÁÈëµ±Ç°¿éblkno£¬Í¬Ê±Òì²½¶ÁÈëÔ¤¶Á¿érablkno*/
+Buf *BufferManager::Breada(short adev, int blkno, int rablkno)
+{
+	Buf *bp = NULL;						   /* ·ÇÔ¤¶Á×Ö·û¿éµÄ»º´æBuf */
+	Buf *abp;							   /* Ô¤¶Á×Ö·û¿éµÄ»º´æBuf */
+	short major = Utility::GetMajor(adev); /* Ö÷Éè±¸ºÅ */
 
+	/* µ±Ç°×Ö·û¿éÊÇ·ñÒÑÔÚÉè±¸Buf¶ÓÁĞÖĞ */
+	if (!this->InCore(adev, blkno))
+	{
+		bp = this->GetBlk(adev, blkno); /* ÈôÃ»ÕÒµ½£¬GetBlk()·ÖÅä»º´æ */
 
+		/* Èç¹û·ÖÅäµ½»º´æµÄB_DONE±êÖ¾ÒÑÉèÖÃ£¬ÒâÎ¶×ÅÔÚInCore()¼ì²éÖ®ºó£¬
+		 * ÆäËü½ø³ÌÅöÇÉ¶ÁÈ¡Í¬Ò»×Ö·û¿é£¬Òò¶øÔÚGetBlk()ÖĞÔÙ´ÎËÑË÷µÄÊ±ºò
+		 * ·¢ÏÖ¸Ã×Ö·û¿éÒÑÔÚÉè±¸Buf¶ÓÁĞ»º³åÇøÖĞ£¬±¾½ø³ÌÖØÓÃ¸Ã»º´æ¡£*/
+		if ((bp->b_flags & Buf::B_DONE) == 0) // Èç¹ûÒÑ¾­B_DONEÁË£¬ÄÇÃ´ËµÃ÷±ğµÄ½ø³ÌÔÚÕâÖ®Ç°ÒÑ¾­¶ÁÈëÁËÕâ¿é×Ö·û¿é£¬²»ĞèÒªÔÙ¶ÁÁË
+		{
+			/* ¹¹³É¶ÁÇëÇó¿é */
+			bp->b_flags |= Buf::B_READ;				   // ×¼±¸¶ÁĞÅºÅ
+			bp->b_wcount = BufferManager::BUFFER_SIZE; // ÉèÖÃĞèÒª´«ËÍµÄ×Ö½ÚÊı
+			/* Çı¶¯¿éÉè±¸½øĞĞI/O²Ù×÷ */
+			this->m_DeviceManager->GetBlockDevice(major).Strategy(bp);
+		}
+	}
+	else
+		/*UNIX V6Ã»ÕâÌõÓï¾ä¡£¼ÓÈëµÄÔ­Òò£ºÈç¹ûµ±Ç°¿éÔÚ»º´æ³ØÖĞ£¬·ÅÆúÔ¤¶Á
+		 * ÕâÊÇÒòÎª£¬Ô¤¶ÁµÄ¼ÛÖµÔÚÓÚÀûÓÃµ±Ç°¿éºÍÔ¤¶Á¿é´ÅÅÌÎ»ÖÃ´ó¸ÅÂÊÁÚ½üµÄÊÂÊµ£¬
+		 * ÓÃÔ¤¶Á²Ù×÷¼õÉÙ´Å±ÛÒÆ¶¯´ÎÊıÌá¸ßÓĞĞ§´ÅÅÌ¶Á´ø¿í¡£Èôµ±Ç°¿éÔÚ»º´æ³Ø£¬´ÅÍ·²»Ò»¶¨ÔÚµ±Ç°¿éËùÔÚµÄÎ»ÖÃ£¬
+		 * ´ËÊ±Ô¤¶Á£¬ÊÕÒæÓĞÏŞ*/
+		rablkno = 0;
+
+	/* Ô¤¶Á²Ù×÷ÓĞ2µãÖµµÃ×¢Òâ£º
+	 * 1¡¢rablknoÎª0£¬ËµÃ÷UNIX´òËã·ÅÆúÔ¤¶Á¡£
+	 *      ÕâÊÇ¿ªÏúÓëÊÕÒæµÄÈ¨ºâ
+	 * 2¡¢ÈôÔ¤¶Á×Ö·û¿éÔÚÉè±¸Buf¶ÓÁĞÖĞ£¬Õë¶ÔÔ¤¶Á¿éµÄ²Ù×÷ÒÑ¾­³É¹¦
+	 * 		ÕâÊÇÒòÎª£º
+	 * 		×÷ÎªÔ¤¶Á¿é£¬²¢·ÇÊÇ½ø³Ì´Ë´Î¶ÁÅÌµÄÄ¿µÄ¡£
+	 * 		ËùÒÔÈç¹û²»¼°Ê±ÊÍ·Å£¬½«Ê¹µÃÔ¤¶Á¿éÒ»Ö±µÃ²»µ½ÊÍ·Å¡£
+	 * 		¶ø½«ÆäÊÍ·ÅËüÒÀÈ»´æÔÚÔÚÉè±¸¶ÓÁĞÖĞ£¬Èç¹ûÔÚ¶ÌÊ±¼äÄÚ
+	 * 		Ê¹ÓÃÕâÒ»¿é£¬ÄÇÃ´ÒÀÈ»¿ÉÒÔÕÒµ½¡£
+	 * */
+	if (rablkno && !this->InCore(adev, rablkno)) // Èç¹û´òËãÔ¤¶Á£¬²¢ÇÒÔ¤¶Á¿éÃ»ÔÚÉè±¸¶ÓÁĞÖĞ
+	{
+		abp = this->GetBlk(adev, rablkno); /* ÈôÃ»ÕÒµ½£¬GetBlk()·ÖÅä»º´æ */
+
+		/* ¼ì²éB_DONE±êÖ¾Î»£¬ÀíÓÉÍ¬ÉÏ¡£ */
+		if (abp->b_flags & Buf::B_DONE)
+		{
+			/* Ô¤¶Á×Ö·û¿éÒÑÔÚ»º´æÖĞ£¬ÊÍ·ÅÕ¼ÓÃµÄ»º´æ¡£
+			 * ÒòÎª½ø³ÌÎ´±ØºóÃæÒ»¶¨»áÊ¹ÓÃÔ¤¶ÁµÄ×Ö·û¿é£¬
+			 * Ò²¾Í²»»áÈ¥ÊÍ·Å¸Ã»º´æ£¬ÓĞ¿ÉÄÜµ¼ÖÂ»º´æ×ÊÔ´
+			 * µÄ³¤Ê±¼äÕ¼ÓÃ¡£
+			 */
+			this->Brelse(abp);
+		}
+		else
+		{
+			/* Òì²½¶ÁÔ¤¶Á×Ö·û¿é */
+			abp->b_flags |= (Buf::B_READ | Buf::B_ASYNC);
+			abp->b_wcount = BufferManager::BUFFER_SIZE; // ÉèÖÃĞèÒª´«ËÍµÄ×Ö½ÚÊı
+			/* Çı¶¯¿éÉè±¸½øĞĞI/O²Ù×÷ */
+			this->m_DeviceManager->GetBlockDevice(major).Strategy(abp);
+		}
+	}
+
+	/* bp == NULLÒâÎ¶×ÅInCore()º¯Êı¼ì²éÊ±¿Ì£¬·ÇÔ¤¶Á¿éÔÚÉè±¸¶ÓÁĞÖĞ£¬
+	 * µ«ÊÇInCore()Ö»ÊÇ¡°¼ì²é¡±£¬²¢²»¡°ÕªÈ¡¡±¡£¾­¹ıÒ»¶ÎÊ±¼äÖ´ĞĞµ½´Ë´¦£¬
+	 * ÓĞ¿ÉÄÜ¸Ã×Ö·û¿éÒÑ¾­ÖØĞÂ·ÖÅäËüÓÃ¡£
+	 * Òò¶øÖØĞÂµ÷ÓÃBread()ÖØ¶Á×Ö·û¿é£¬Bread()ÖĞµ÷ÓÃGetBlk()½«×Ö·û¿é¡°ÕªÈ¡¡±
+	 * ¹ıÀ´¡£¶ÌÊ±¼äÄÚ¸Ã×Ö·û¿éÈÔÔÚÉè±¸¶ÓÁĞÖĞ£¬ËùÒÔ´Ë´¦Bread()Ò»°ãÒ²¾ÍÊÇ½«
+	 * »º´æÖØÓÃ£¬¶ø²»±ØÖØĞÂÖ´ĞĞÒ»´ÎI/O¶ÁÈ¡²Ù×÷¡£
+	 */
+	if (NULL == bp)
+	{
+		return (this->Bread(adev, blkno)); // Í¬²½¶ÁÈë<blkno,adev>£¬ÕâÊÇÒ»¸ö±£ÏÕ²Ù×÷£¬·ÀÖ¹¸Õ²ÅÔÚÉè±¸¶ÓÁĞÖĞµÄ»º´æÏÖÔÚ²»ÔÚÁË
+	}
+
+	/* InCore()º¯Êı¼ì²éÊ±¿ÌÎ´ÕÒµ½·ÇÔ¤¶Á×Ö·û¿é£¬µÈ´ıI/O²Ù×÷Íê³É */
+	this->IOWait(bp);
+	return bp;
+}
+
+/*Ğ´²Ù×÷£¬º¯Êıµ÷ÓÃ¹ı³ÌÖĞ£¬½ø³Ì»áÈëË¯*/
 void BufferManager::Bwrite(Buf *bp)
 {
-	bp->b_flags &= ~(Buf::B_READ | Buf::B_DONE | Buf::B_ERROR | Buf::B_DELWRI);
-	bp->b_wcount = BufferManager::BUFFER_SIZE;		/* 512å­—èŠ‚ */
+	unsigned int flags;
 
-	memcpy(&this->p[BufferManager::BUFFER_SIZE * bp->b_blkno], bp->b_addr, BufferManager::BUFFER_SIZE);
-	this->Brelse(bp);
+	flags = bp->b_flags;
+	bp->b_flags &= ~(Buf::B_READ | Buf::B_DONE | Buf::B_ERROR | Buf::B_DELWRI); // Çå³ıB_READ£¬B_DONE£¬B_ERROR£¬B_DELWRI±ê¼Ç
+	bp->b_wcount = BufferManager::BUFFER_SIZE;									/* 512×Ö½Ú */
 
+	this->m_DeviceManager->GetBlockDevice(Utility::GetMajor(bp->b_dev)).Strategy(bp);
+
+	if ((flags & Buf::B_ASYNC) == 0) // Èç¹ûÃ»ÓĞÒì²½±êÖ¾
+	{
+		/* Í¬²½Ğ´£¬ĞèÒªµÈ´ıI/O²Ù×÷½áÊø */
+		this->IOWait(bp);
+		this->Brelse(bp); // Ğ´Íê¾ÍÊÍ·Å
+	}
+	else if ((flags & Buf::B_DELWRI) == 0)
+	{
+		/*
+		 * Èç¹û²»ÊÇÑÓ³ÙĞ´£¬Ôò¼ì²é´íÎó£»·ñÔò²»¼ì²é¡£
+		 * ÕâÊÇÒòÎªÈç¹ûÑÓ³ÙĞ´£¬ÔòºÜÓĞ¿ÉÄÜµ±Ç°½ø³Ì²»ÊÇ
+		 * ²Ù×÷ÕâÒ»»º´æ¿éµÄ½ø³Ì£¬¶øÔÚGetError()Ö÷ÒªÊÇ
+		 * ¸øµ±Ç°½ø³Ì¸½ÉÏ´íÎó±êÖ¾¡£
+		 */
+		this->GetError(bp);
+	}
 	return;
 }
 
+/*ÑÓ³ÙĞ´²Ù×÷£¬Êı¾İĞ´Èë»º´æÖ®ºó£¬²»±ØÁ¢¼´ËÍ IO ÇëÇó¶ÓÁĞÆô¶¯Ğ´²Ù×÷¡£*/
 void BufferManager::Bdwrite(Buf *bp)
 {
-	/* ç½®ä¸ŠB_DONEå…è®¸å…¶å®ƒè¿›ç¨‹ä½¿ç”¨è¯¥ç£ç›˜å—å†…å®¹ */
+	/* ÖÃÉÏB_DONEÔÊĞíÆäËü½ø³ÌÊ¹ÓÃ¸Ã´ÅÅÌ¿éÄÚÈİ */
 	bp->b_flags |= (Buf::B_DELWRI | Buf::B_DONE);
-	this->Brelse(bp);
+	this->Brelse(bp); // ÖÃÍê±êÖ¾Ö®ºó¾ÍÖ±½ÓÊÍ·Å
 	return;
 }
-
+/*Òì²½Ğ´²Ù×÷£¬Ê¹µÃµ÷ÓÃBwriteÊ±²»ÓÃIOWait*/
 void BufferManager::Bawrite(Buf *bp)
 {
-	/* æ ‡è®°ä¸ºå¼‚æ­¥å†™ */
+	/* ±ê¼ÇÎªÒì²½Ğ´ */
 	bp->b_flags |= Buf::B_ASYNC;
 	this->Bwrite(bp);
 	return;
 }
 
+// ½«»º³åÇøÖĞÊı¾İÇåÁã
 void BufferManager::ClrBuf(Buf *bp)
 {
-	int* pInt = (int *)bp->b_addr;
+	int *pInt = (int *)bp->b_addr; // »ñµÃ»º³åÇøµÄÊ×µØÖ·
 
-	/* å°†ç¼“å†²åŒºä¸­æ•°æ®æ¸…é›¶ */
-	for(unsigned int i = 0; i < BufferManager::BUFFER_SIZE / sizeof(int); i++)
+	/* ½«»º³åÇøÖĞÊı¾İÇåÁã */
+	for (unsigned int i = 0; i < BufferManager::BUFFER_SIZE / sizeof(int); i++)
 	{
 		pInt[i] = 0;
 	}
 	return;
 }
-/* é˜Ÿåˆ—ä¸­å»¶è¿Ÿå†™çš„ç¼“å­˜å…¨éƒ¨è¾“å‡ºåˆ°ç£ç›˜ */
-void BufferManager::Bflush()
+
+// °Ñ×ÔÓÉ¶ÓÁĞÖĞÉè±¸ºÅÊÇdevµÄÑÓ³ÙĞ´µÄ¿éÈ«Òì²½Ğ´»ØÈ¥
+void BufferManager::Bflush(short dev)
 {
-	cout<<"Bflush"<<endl;
-	Buf* bp;
-	/* æ³¨æ„ï¼šè¿™é‡Œä¹‹æ‰€ä»¥è¦åœ¨æœç´¢åˆ°ä¸€ä¸ªå—ä¹‹åé‡æ–°å¼€å§‹æœç´¢ï¼Œ
-	 * å› ä¸ºåœ¨bwite()è¿›å…¥åˆ°é©±åŠ¨ç¨‹åºä¸­æ—¶æœ‰å¼€ä¸­æ–­çš„æ“ä½œï¼Œæ‰€ä»¥
-	 * ç­‰åˆ°bwriteæ‰§è¡Œå®Œæˆåï¼ŒCPUå·²å¤„äºå¼€ä¸­æ–­çŠ¶æ€ï¼Œæ‰€ä»¥å¾ˆ
-	 * æœ‰å¯èƒ½åœ¨è¿™æœŸé—´äº§ç”Ÿç£ç›˜ä¸­æ–­ï¼Œä½¿å¾—bfreelisté˜Ÿåˆ—å‡ºç°å˜åŒ–ï¼Œ
-	 * å¦‚æœè¿™é‡Œç»§ç»­å¾€ä¸‹æœç´¢ï¼Œè€Œä¸æ˜¯é‡æ–°å¼€å§‹æœç´¢é‚£ä¹ˆå¾ˆå¯èƒ½åœ¨
-	 * æ“ä½œbfreelisté˜Ÿåˆ—çš„æ—¶å€™å‡ºç°é”™è¯¯ã€‚
+	Buf *bp;
+	/* ×¢Òâ£ºÕâÀïÖ®ËùÒÔÒªÔÚËÑË÷µ½Ò»¸ö¿éÖ®ºóÖØĞÂ¿ªÊ¼ËÑË÷£¬
+	 * ÒòÎªÔÚbwite()½øÈëµ½Çı¶¯³ÌĞòÖĞÊ±ÓĞ¿ªÖĞ¶ÏµÄ²Ù×÷£¬ËùÒÔ
+	 * µÈµ½bwriteÖ´ĞĞÍê³Éºó£¬CPUÒÑ´¦ÓÚ¿ªÖĞ¶Ï×´Ì¬£¬ËùÒÔºÜ
+	 * ÓĞ¿ÉÄÜÔÚÕâÆÚ¼ä²úÉú´ÅÅÌÖĞ¶Ï£¬Ê¹µÃbfreelist¶ÓÁĞ³öÏÖ±ä»¯£¬
+	 * Èç¹ûÕâÀï¼ÌĞøÍùÏÂËÑË÷£¬¶ø²»ÊÇÖØĞÂ¿ªÊ¼ËÑË÷ÄÇÃ´ºÜ¿ÉÄÜÔÚ
+	 * ²Ù×÷bfreelist¶ÓÁĞµÄÊ±ºò³öÏÖ´íÎó¡£
 	 */
-// loop:
-//	X86Assembly::CLI();
-	for(bp = this->bFreeList.b_forw; bp != &(this->bFreeList); bp = bp->b_forw)
+loop:
+	X86Assembly::CLI(); // ¹ØÖĞ¶Ï
+	// ±éÀúÕû¸ö×ÔÓÉ»º´æ¶ÓÁĞ
+	for (bp = this->bFreeList.av_forw; bp != &(this->bFreeList); bp = bp->av_forw)
 	{
-		/* æ‰¾å‡ºè‡ªç”±é˜Ÿåˆ—ä¸­æ‰€æœ‰å»¶è¿Ÿå†™çš„å— */
-		if( (bp->b_flags & Buf::B_DELWRI)) //&& (dev == DeviceManager::NODEV || dev == bp->b_dev) )
+		/* ÕÒ³ö×ÔÓÉ¶ÓÁĞÖĞËùÓĞÑÓ³ÙĞ´µÄ¿é */
+		if ((bp->b_flags & Buf::B_DELWRI) && (dev == DeviceManager::NODEV || dev == bp->b_dev))
 		{
-			// æŠŠå½“å‰çš„bufä»é˜Ÿåˆ—é‡Œæ‹¿å‡ºæ¥ï¼ˆä¿®æ”¹å‰é¢å’Œåé¢bufçš„æŒ‡é’ˆ
-			bp->b_back->b_forw = bp->b_forw;
-			bp->b_forw->b_back = bp->b_back;
-			// bufåå‘æŒ‡é’ˆæŒ‡å‘å¤´çš„å‰ä¸€ä¸ªï¼Ÿï¼Ÿï¼Ÿä¸ºå•¥
-			bp->b_back = this->bFreeList.b_back->b_forw;
-			// å¤´çš„åä¸€ä¸ªbufçš„å‰ä¸€ä¸ªæŒ‡å‘buf
-			this->bFreeList.b_back->b_forw = bp;
-			// bufçš„å‰å‘æŒ‡å‘å¤´
-			bp->b_forw = &this->bFreeList;
-			// å¤´çš„åå‘æ˜¯buf
-			this->bFreeList.b_back = bp;
-			// æˆ‘ä»¬è¿™é‡Œæ²¡æœ‰å¼‚æ­¥
-			// bp->b_flags |= Buf::B_ASYNC;
-			// this->NotAvail(bp);
-			this->Bwrite(bp);
-			// goto loop;
+			bp->b_flags |= Buf::B_ASYNC; // ÖÃÒì²½±êÖ¾
+			this->NotAvail(bp);			 // ´Ó×ÔÓÉ¶ÓÁĞÖĞÈ¡³öÕâ¸ö¿é
+			this->Bwrite(bp);			 // Òì²½Ğ´
+			goto loop;
 		}
 	}
-	// X86Assembly::STI();
+	X86Assembly::STI(); // ¿ªÖĞ¶Ï
 	return;
 }
 
-
-
-void BufferManager::GetError(Buf* bp)
+bool BufferManager::Swap(int blkno, unsigned long addr, int count, enum Buf::BufFlag flag)
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User &u = Kernel::Instance().GetUser(); // »ñµÃµ±Ç°µÄuser½á¹¹
+
+	X86Assembly::CLI(); // ¹ØÖĞ¶Ï
+
+	/* swbufÕıÔÚ±»ÆäËü½ø³ÌÊ¹ÓÃ£¬ÔòË¯ÃßµÈ´ı */
+	while (this->SwBuf.b_flags & Buf::B_BUSY)
+	{
+		this->SwBuf.b_flags |= Buf::B_WANTED;						   // ¸øSwBufÖÃB_WANTED±êÖ¾
+		u.u_procp->Sleep((unsigned long)&SwBuf, ProcessManager::PSWP); // ÈëË¯
+	}
+
+	this->SwBuf.b_flags = Buf::B_BUSY | flag;	// ¿ªÊ¼Swap£¬ÖÃbusy±êÖ¾
+	this->SwBuf.b_dev = DeviceManager::ROOTDEV; // SwBuf¶ÔÓ¦µÄÉè±¸ÊÇ´ÅÅÌ
+	this->SwBuf.b_wcount = count;				// ĞèÒª´«ÊäµÄ×Ö½ÚÊı
+	this->SwBuf.b_blkno = blkno;				// ´ÅÅÌÂß¼­ÉÈÇøºÅ
+	/* b_addrÖ¸ÏòÒª´«Êä²¿·ÖµÄÄÚ´æÊ×µØÖ· */
+	this->SwBuf.b_addr = (unsigned char *)addr;
+	this->m_DeviceManager->GetBlockDevice(Utility::GetMajor(this->SwBuf.b_dev)).Strategy(&this->SwBuf); // ·ÅIO»º´æ¶ÓÁĞ
+
+	/* ¹ØÖĞ¶Ï½øĞĞB_DONE±êÖ¾µÄ¼ì²é */
+	X86Assembly::CLI();
+	/* ÕâÀïSleep()µÈÍ¬ÓÚÍ¬²½I/OÖĞIOWait()µÄĞ§¹û */
+	while ((this->SwBuf.b_flags & Buf::B_DONE) == 0)
+	{
+		// Èç¹ûSwBuf»¹ÔÚ¹¤×÷£¬¾ÍÈëË¯
+		u.u_procp->Sleep((unsigned long)&SwBuf, ProcessManager::PSWP);
+	}
+
+	/* ÕâÀïWakeup()µÈÍ¬ÓÚBrelse()µÄĞ§¹û */
+	if (this->SwBuf.b_flags & Buf::B_WANTED)
+	{
+		// »½ĞÑµÈ´ıÊ¹ÓÃSwBufµÄÆäËû½ø³Ì
+		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&SwBuf);
+	}
+	X86Assembly::STI();									   // ¿ªÖĞ¶Ï
+	this->SwBuf.b_flags &= ~(Buf::B_BUSY | Buf::B_WANTED); // Çå³ıB_BUSYºÍB_WANTED±êÖ¾
+
+	if (this->SwBuf.b_flags & Buf::B_ERROR) // ¼ì²éÊÇ·ñ³ö´í
+	{
+		return false;
+	}
+	return true;
+}
+
+/*¼ì²é»º´æ¿ébpÊÇ·ñ³ö´í*/
+void BufferManager::GetError(Buf *bp)
+{
+	User &u = Kernel::Instance().GetUser(); // »ñÈ¡µ±Ç°µÄuser½á¹¹
 
 	if (bp->b_flags & Buf::B_ERROR)
 	{
-		u.u_error = EIO;
+		u.u_error = User::EIO; // Èç¹û³ö´í£¬¸øuser½á¹¹Ò²ÖÃ³ö´í±êÖ¾
 	}
 	return;
 }
 
-// void BufferManager::NotAvail(Buf *bp)
-// {
-// 	X86Assembly::CLI();		/* spl6();  UNIX V6çš„åšæ³• */
-// 	/* ä»è‡ªç”±é˜Ÿåˆ—ä¸­å–å‡º */
-// 	bp->av_back->av_forw = bp->av_forw;
-// 	bp->av_forw->av_back = bp->av_back;
-// 	/* è®¾ç½®B_BUSYæ ‡å¿— */
-// 	bp->b_flags |= Buf::B_BUSY;
-// 	X86Assembly::STI();
-// 	return;
-// }
-
-Buf* BufferManager::InCore( int blkno)
+/*½«»º´æ¿ébp´Ó×ÔÓÉ»º´æ¶ÓÁĞÖĞÈ¡³öÀ´*/
+void BufferManager::NotAvail(Buf *bp)
 {
-	cout<<"Incore"<<endl;
-	Buf* bp;
-	// Devtab* dp;
-	// short major = Utility::GetMajor(adev);
-	Buf*dp=  &this->bFreeList;
-	// dp = this->m_DeviceManager->GetBlockDevice(major).d_tab;
-	for(bp = dp->b_forw; bp != (Buf *)dp; bp = bp->b_forw)
+	X86Assembly::CLI(); /* spl6();  UNIX V6µÄ×ö·¨ */
+	/* ´Ó×ÔÓÉ¶ÓÁĞÖĞÈ¡³ö */
+	bp->av_back->av_forw = bp->av_forw;
+	bp->av_forw->av_back = bp->av_back;
+	/* ÉèÖÃB_BUSY±êÖ¾ */
+	bp->b_flags |= Buf::B_BUSY;
+	X86Assembly::STI();
+	return;
+}
+
+/*¼ì²éblknoÊÇ·ñÔÚadevµÄÉè±¸¶ÓÁĞÖĞ*/
+Buf *BufferManager::InCore(short adev, int blkno)
+{
+	Buf *bp;
+	Devtab *dp;
+	short major = Utility::GetMajor(adev); // »ñÈ¡Ö÷Éè±¸ºÅ
+
+	dp = this->m_DeviceManager->GetBlockDevice(major).d_tab; // »ñÈ¡¿éÉè±¸±í
+	// ±éÀúÕû¸öÉè±¸¶ÓÁĞ
+	for (bp = dp->b_forw; bp != (Buf *)dp; bp = bp->b_forw)
 	{
-		if(bp->b_blkno == blkno)// && bp->b_dev == adev)
+		if (bp->b_blkno == blkno && bp->b_dev == adev) // ÕÒµ½blkno
 			return bp;
 	}
 	return NULL;
 }
 
-// Buf& BufferManager::GetSwapBuf()
-// {
-// 	return this->SwBuf;
-// }
+/*»ñÈ¡SwBuf*/
+Buf &BufferManager::GetSwapBuf()
+{
+	return this->SwBuf;
+}
 
-Buf& BufferManager::GetBFreeList()
+/*»ñÈ¡×ÔÓÉ¶ÓÁĞ¶ÓÊ×*/
+Buf &BufferManager::GetBFreeList()
 {
 	return this->bFreeList;
 }
-

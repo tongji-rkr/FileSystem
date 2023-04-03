@@ -1,3 +1,8 @@
+/*
+ * @Description:
+ * @Date: 2022-09-05 14:30:16
+ * @LastEditTime: 2023-04-02 15:56:26
+ */
 #ifndef OPEN_FILE_MANAGER_H
 #define OPEN_FILE_MANAGER_H
 
@@ -9,25 +14,25 @@
 class OpenFileTable;
 class InodeTable;
 
-/* ä»¥ä¸‹2ä¸ªå¯¹è±¡å®ä¾‹å®šä¹‰åœ¨OpenFileManager.cppæ–‡ä»¶ä¸­ */
+/* ÒÔÏÂ2¸ö¶ÔÏóÊµÀı¶¨ÒåÔÚOpenFileManager.cppÎÄ¼şÖĞ */
 extern InodeTable g_InodeTable;
 extern OpenFileTable g_OpenFileTable;
 
-/* 
- * æ‰“å¼€æ–‡ä»¶ç®¡ç†ç±»(OpenFileManager)è´Ÿè´£
- * å†…æ ¸ä¸­å¯¹æ‰“å¼€æ–‡ä»¶æœºæ„çš„ç®¡ç†ï¼Œä¸ºè¿›ç¨‹
- * æ‰“å¼€æ–‡ä»¶å»ºç«‹å†…æ ¸æ•°æ®ç»“æ„ä¹‹é—´çš„å‹¾è¿
- * å…³ç³»ã€‚
- * å‹¾è¿å…³ç³»æŒ‡è¿›ç¨‹uåŒºä¸­æ‰“å¼€æ–‡ä»¶æè¿°ç¬¦æŒ‡å‘
- * æ‰“å¼€æ–‡ä»¶è¡¨ä¸­çš„Fileæ‰“å¼€æ–‡ä»¶æ§åˆ¶ç»“æ„ï¼Œ
- * ä»¥åŠä»Fileç»“æ„æŒ‡å‘æ–‡ä»¶å¯¹åº”çš„å†…å­˜Inodeã€‚
+/*
+ * ´ò¿ªÎÄ¼ş¹ÜÀíÀà(OpenFileManager)¸ºÔğ
+ * ÄÚºËÖĞ¶Ô´ò¿ªÎÄ¼ş»ú¹¹µÄ¹ÜÀí£¬Îª½ø³Ì
+ * ´ò¿ªÎÄ¼ş½¨Á¢ÄÚºËÊı¾İ½á¹¹Ö®¼äµÄ¹´Á¬
+ * ¹ØÏµ¡£
+ * ¹´Á¬¹ØÏµÖ¸½ø³ÌuÇøÖĞ´ò¿ªÎÄ¼şÃèÊö·ûÖ¸Ïò
+ * ´ò¿ªÎÄ¼ş±íÖĞµÄFile´ò¿ªÎÄ¼ş¿ØÖÆ½á¹¹£¬
+ * ÒÔ¼°´ÓFile½á¹¹Ö¸ÏòÎÄ¼ş¶ÔÓ¦µÄÄÚ´æInode¡£
  */
 class OpenFileTable
 {
 public:
 	/* static consts */
-	//static const int NINODE	= 100;	/* å†…å­˜Inodeçš„æ•°é‡ */
-	static const int NFILE	= 100;	/* æ‰“å¼€æ–‡ä»¶æ§åˆ¶å—Fileç»“æ„çš„æ•°é‡ */
+	// static const int NINODE	= 100;	/* ÄÚ´æInodeµÄÊıÁ¿ */
+	static const int NFILE = 100; /* ´ò¿ªÎÄ¼ş¿ØÖÆ¿éFile½á¹¹µÄÊıÁ¿ */
 
 	/* Functions */
 public:
@@ -35,82 +40,81 @@ public:
 	OpenFileTable();
 	/* Destructors */
 	~OpenFileTable();
-	
-	// /* 
-	 // * @comment æ ¹æ®ç”¨æˆ·ç³»ç»Ÿè°ƒç”¨æä¾›çš„æ–‡ä»¶æè¿°ç¬¦å‚æ•°fdï¼Œ
-	 // * æ‰¾åˆ°å¯¹åº”çš„æ‰“å¼€æ–‡ä»¶æ§åˆ¶å—Fileç»“æ„
-	 // */
+
+	// /*
+	// * @comment ¸ù¾İÓÃ»§ÏµÍ³µ÷ÓÃÌá¹©µÄÎÄ¼şÃèÊö·û²ÎÊıfd£¬
+	// * ÕÒµ½¶ÔÓ¦µÄ´ò¿ªÎÄ¼ş¿ØÖÆ¿éFile½á¹¹
+	// */
 	// File* GetF(int fd);
-	/* 
-	 * @comment åœ¨ç³»ç»Ÿæ‰“å¼€æ–‡ä»¶è¡¨ä¸­åˆ†é…ä¸€ä¸ªç©ºé—²çš„Fileç»“æ„
+	/*
+	 * @comment ÔÚÏµÍ³´ò¿ªÎÄ¼ş±íÖĞ·ÖÅäÒ»¸ö¿ÕÏĞµÄFile½á¹¹
 	 */
-	File* FAlloc();
-	/* 
-	 * @comment å¯¹æ‰“å¼€æ–‡ä»¶æ§åˆ¶å—Fileç»“æ„çš„å¼•ç”¨è®¡æ•°f_countå‡1ï¼Œ
-	 * è‹¥å¼•ç”¨è®¡æ•°f_countä¸º0ï¼Œåˆ™é‡Šæ”¾Fileç»“æ„ã€‚
+	File *FAlloc();
+	/*
+	 * @comment ¶Ô´ò¿ªÎÄ¼ş¿ØÖÆ¿éFile½á¹¹µÄÒıÓÃ¼ÆÊıf_count¼õ1£¬
+	 * ÈôÒıÓÃ¼ÆÊıf_countÎª0£¬ÔòÊÍ·ÅFile½á¹¹¡£
 	 */
-	void CloseF(File* pFile);
-	
+	void CloseF(File *pFile);
+
 	/* Members */
 public:
-	File m_File[NFILE];			/* ç³»ç»Ÿæ‰“å¼€æ–‡ä»¶è¡¨ï¼Œä¸ºæ‰€æœ‰è¿›ç¨‹å…±äº«ï¼Œè¿›ç¨‹æ‰“å¼€æ–‡ä»¶æè¿°ç¬¦è¡¨
-								ä¸­åŒ…å«æŒ‡å‘æ‰“å¼€æ–‡ä»¶è¡¨ä¸­å¯¹åº”Fileç»“æ„çš„æŒ‡é’ˆã€‚*/
+	File m_File[NFILE]; /* ÏµÍ³´ò¿ªÎÄ¼ş±í£¬ÎªËùÓĞ½ø³Ì¹²Ïí£¬½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û±í
+						ÖĞ°üº¬Ö¸Ïò´ò¿ªÎÄ¼ş±íÖĞ¶ÔÓ¦File½á¹¹µÄÖ¸Õë¡£*/
 };
 
-/* 
- * å†…å­˜Inodeè¡¨(class InodeTable)
- * è´Ÿè´£å†…å­˜Inodeçš„åˆ†é…å’Œé‡Šæ”¾ã€‚
+/*
+ * ÄÚ´æInode±í(class InodeTable)
+ * ¸ºÔğÄÚ´æInodeµÄ·ÖÅäºÍÊÍ·Å¡£
  */
 class InodeTable
 {
 	/* static consts */
 public:
-	static const int NINODE	= 100;	/* å†…å­˜Inodeçš„æ•°é‡ */
-	
+	static const int NINODE = 100; /* ÄÚ´æInodeµÄÊıÁ¿ */
+
 	/* Functions */
 public:
 	/* Constructors */
 	InodeTable();
 	/* Destructors */
 	~InodeTable();
-	
-	/* 
-	 * @comment åˆå§‹åŒ–å¯¹g_FileSystemå¯¹è±¡çš„å¼•ç”¨
+
+	/*
+	 * @comment ³õÊ¼»¯¶Ôg_FileSystem¶ÔÏóµÄÒıÓÃ
 	 */
 	void Initialize();
-	/* 
-	 * @comment æ ¹æ®æŒ‡å®šè®¾å¤‡å·devï¼Œå¤–å­˜Inodeç¼–å·è·å–å¯¹åº”
-	 * Inodeã€‚å¦‚æœè¯¥Inodeå·²ç»åœ¨å†…å­˜ä¸­ï¼Œå¯¹å…¶ä¸Šé”å¹¶è¿”å›è¯¥å†…å­˜Inodeï¼Œ
-	 * å¦‚æœä¸åœ¨å†…å­˜ä¸­ï¼Œåˆ™å°†å…¶è¯»å…¥å†…å­˜åä¸Šé”å¹¶è¿”å›è¯¥å†…å­˜Inode
-	 * kyf åˆ æ‰äº†devå·
+	/*
+	 * @comment ¸ù¾İÖ¸¶¨Éè±¸ºÅdev£¬Íâ´æInode±àºÅ»ñÈ¡¶ÔÓ¦
+	 * Inode¡£Èç¹û¸ÃInodeÒÑ¾­ÔÚÄÚ´æÖĞ£¬¶ÔÆäÉÏËø²¢·µ»Ø¸ÃÄÚ´æInode£¬
+	 * Èç¹û²»ÔÚÄÚ´æÖĞ£¬Ôò½«Æä¶ÁÈëÄÚ´æºóÉÏËø²¢·µ»Ø¸ÃÄÚ´æInode
 	 */
-	Inode* IGet(int inumber);
-	/* 
-	 * @comment å‡å°‘è¯¥å†…å­˜Inodeçš„å¼•ç”¨è®¡æ•°ï¼Œå¦‚æœæ­¤Inodeå·²ç»æ²¡æœ‰ç›®å½•é¡¹æŒ‡å‘å®ƒï¼Œ
-	 * ä¸”æ— è¿›ç¨‹å¼•ç”¨è¯¥Inodeï¼Œåˆ™é‡Šæ”¾æ­¤æ–‡ä»¶å ç”¨çš„ç£ç›˜å—ã€‚
+	Inode *IGet(short dev, int inumber);
+	/*
+	 * @comment ¼õÉÙ¸ÃÄÚ´æInodeµÄÒıÓÃ¼ÆÊı£¬Èç¹û´ËInodeÒÑ¾­Ã»ÓĞÄ¿Â¼ÏîÖ¸ÏòËü£¬
+	 * ÇÒÎŞ½ø³ÌÒıÓÃ¸ÃInode£¬ÔòÊÍ·Å´ËÎÄ¼şÕ¼ÓÃµÄ´ÅÅÌ¿é¡£
 	 */
-	void IPut(Inode* pNode);
+	void IPut(Inode *pNode);
 
-	/* 
-	 * @comment å°†æ‰€æœ‰è¢«ä¿®æ”¹è¿‡çš„å†…å­˜Inodeæ›´æ–°åˆ°å¯¹åº”å¤–å­˜Inodeä¸­
+	/*
+	 * @comment ½«ËùÓĞ±»ĞŞ¸Ä¹ıµÄÄÚ´æInode¸üĞÂµ½¶ÔÓ¦Íâ´æInodeÖĞ
 	 */
 	void UpdateInodeTable();
-	
-	/* 
-	 * @comment æ£€æŸ¥è®¾å¤‡devä¸Šç¼–å·ä¸ºinumberçš„å¤–å­˜inodeæ˜¯å¦æœ‰å†…å­˜æ‹·è´ï¼Œ
-	 * å¦‚æœæœ‰åˆ™è¿”å›è¯¥å†…å­˜Inodeåœ¨å†…å­˜Inodeè¡¨ä¸­çš„ç´¢å¼•
+
+	/*
+	 * @comment ¼ì²éÉè±¸devÉÏ±àºÅÎªinumberµÄÍâ´æinodeÊÇ·ñÓĞÄÚ´æ¿½±´£¬
+	 * Èç¹ûÓĞÔò·µ»Ø¸ÃÄÚ´æInodeÔÚÄÚ´æInode±íÖĞµÄË÷Òı
 	 */
-	int IsLoaded(int inumber);
-	/* 
-	 * @comment åœ¨å†…å­˜Inodeè¡¨ä¸­å¯»æ‰¾ä¸€ä¸ªç©ºé—²çš„å†…å­˜Inode
+	int IsLoaded(short dev, int inumber);
+	/*
+	 * @comment ÔÚÄÚ´æInode±íÖĞÑ°ÕÒÒ»¸ö¿ÕÏĞµÄÄÚ´æInode
 	 */
-	Inode* GetFreeInode();
-	
+	Inode *GetFreeInode();
+
 	/* Members */
 public:
-	Inode m_Inode[NINODE];		/* å†…å­˜Inodeæ•°ç»„ï¼Œæ¯ä¸ªæ‰“å¼€æ–‡ä»¶éƒ½ä¼šå ç”¨ä¸€ä¸ªå†…å­˜Inode */
+	Inode m_Inode[NINODE]; /* ÄÚ´æInodeÊı×é£¬Ã¿¸ö´ò¿ªÎÄ¼ş¶¼»áÕ¼ÓÃÒ»¸öÄÚ´æInode */
 
-	FileSystem* m_FileSystem;	/* å¯¹å…¨å±€å¯¹è±¡g_FileSystemçš„å¼•ç”¨ */
+	FileSystem *m_FileSystem; /* ¶ÔÈ«¾Ö¶ÔÏóg_FileSystemµÄÒıÓÃ */
 };
 
 #endif

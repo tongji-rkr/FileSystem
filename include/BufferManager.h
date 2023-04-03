@@ -1,67 +1,61 @@
+/*
+ * @Description: 
+ * @Date: 2022-09-05 14:30:16
+ * @LastEditTime: 2023-04-02 15:51:19
+ */
 #ifndef BUFFER_MANAGER_H
 #define BUFFER_MANAGER_H
 
 #include "Buf.h"
-//#include "DeviceManager.h"
+#include "DeviceManager.h"
 
 class BufferManager
 {
 public:
-    /* static const member */
-    static const int NBUF = 15;         /* ç¼“å­˜æ§åˆ¶å—ã€ç¼“å†²åŒºçš„æ•°é‡ */
-    static const int BUFFER_SIZE = 512; /* ç¼“å†²åŒºå¤§å°ã€‚ ä»¥å­—èŠ‚ä¸ºå•ä½ */
+	/* static const member */
+	static const int NBUF = 15;			/* »º´æ¿ØÖÆ¿é¡¢»º³åÇøµÄÊıÁ¿ */
+	static const int BUFFER_SIZE = 512; /* »º³åÇø´óĞ¡¡£ ÒÔ×Ö½ÚÎªµ¥Î» */
 
 public:
-    BufferManager();
-    ~BufferManager();
+	BufferManager();  // ¹¹Ôìº¯Êı
+	~BufferManager(); // Îö¹¹º¯Êı
 
-    void Initialize(); /* ç¼“å­˜æ§åˆ¶å—é˜Ÿåˆ—çš„åˆå§‹åŒ–ã€‚å°†ç¼“å­˜æ§åˆ¶å—ä¸­b_addræŒ‡å‘ç›¸åº”ç¼“å†²åŒºé¦–åœ°å€ã€‚*/
-    // åªæœ‰ä¸€ä¸ªdev
-    Buf *GetBlk(int blkno); /* ç”³è¯·ä¸€å—ç¼“å­˜ï¼Œç”¨äºè¯»å†™è®¾å¤‡devä¸Šçš„å­—ç¬¦å—blknoã€‚*/
-    void Brelse(Buf *bp);              /* é‡Šæ”¾ç¼“å­˜æ§åˆ¶å—buf */
-    void IOWait(Buf *bp);              /* åŒæ­¥æ–¹å¼I/Oï¼Œç­‰å¾…I/Oæ“ä½œç»“æŸ */
-    void IODone(Buf *bp);              /* I/Oæ“ä½œç»“æŸå–„åå¤„ç† */
+	void Initialize(); /* »º´æ¿ØÖÆ¿é¶ÓÁĞµÄ³õÊ¼»¯¡£½«»º´æ¿ØÖÆ¿éÖĞb_addrÖ¸ÏòÏàÓ¦»º³åÇøÊ×µØÖ·¡£*/
 
-    Buf *Bread(int blkno);                /* è¯»ä¸€ä¸ªç£ç›˜å—ã€‚devä¸ºä¸»ã€æ¬¡è®¾å¤‡å·ï¼Œblknoä¸ºç›®æ ‡ç£ç›˜å—é€»è¾‘å—å·ã€‚ */
-    // Buf *Breada(short adev, int blkno, int rablkno); /* è¯»ä¸€ä¸ªç£ç›˜å—ï¼Œå¸¦æœ‰é¢„è¯»æ–¹å¼ã€‚
-    //                                                  * adevä¸ºä¸»ã€æ¬¡è®¾å¤‡å·ã€‚blknoä¸ºç›®æ ‡ç£ç›˜å—é€»è¾‘å—å·ï¼ŒåŒæ­¥æ–¹å¼è¯»blknoã€‚
-    //                                                  * rablknoä¸ºé¢„è¯»ç£ç›˜å—é€»è¾‘å—å·ï¼Œå¼‚æ­¥æ–¹å¼è¯»rablknoã€‚ */
-    void Bwrite(Buf *bp);                            /* å†™ä¸€ä¸ªç£ç›˜å— */
-    void Bdwrite(Buf *bp);                           /* å»¶è¿Ÿå†™ç£ç›˜å— */
-    void Bawrite(Buf *bp);                           /* å¼‚æ­¥å†™ç£ç›˜å— */
+	Buf *GetBlk(short dev, int blkno); /* ÉêÇëÒ»¿é»º´æ£¬ÓÃÓÚ¶ÁĞ´Éè±¸devÉÏµÄ×Ö·û¿éblkno¡£*/
+	void Brelse(Buf *bp);			   /* ÊÍ·Å»º´æ¿ØÖÆ¿ébuf */
+	void IOWait(Buf *bp);			   /* Í¬²½·½Ê½I/O£¬µÈ´ıI/O²Ù×÷½áÊø */
+	void IODone(Buf *bp);			   /* I/O²Ù×÷½áÊøÉÆºó´¦Àí */
 
-    void ClrBuf(Buf *bp);   /* æ¸…ç©ºç¼“å†²åŒºå†…å®¹ */
-    void Bflush(); /* å°†devæŒ‡å®šè®¾å¤‡é˜Ÿåˆ—ä¸­å»¶è¿Ÿå†™çš„ç¼“å­˜å…¨éƒ¨è¾“å‡ºåˆ°ç£ç›˜ */
-    // æˆ‘ä»¬ç”¨çº¿ç¨‹å®ç°è¿›ç¨‹ï¼Œæ‰€ä»¥ä¸è¦è¿›ç¨‹ç®¡ç†
-    // bool Swap(int blkno, unsigned long addr, int count, enum Buf::BufFlag flag);
-    /* Swap I/O ç”¨äºè¿›ç¨‹å›¾åƒåœ¨å†…å­˜å’Œç›˜äº¤æ¢åŒºä¹‹é—´ä¼ è¾“
-     * blkno: äº¤æ¢åŒºä¸­ç›˜å—å·ï¼›addr:  è¿›ç¨‹å›¾åƒ(ä¼ é€éƒ¨åˆ†)å†…å­˜èµ·å§‹åœ°å€ï¼›
-     * count: è¿›è¡Œä¼ è¾“å­—èŠ‚æ•°ï¼Œbyteä¸ºå•ä½ï¼›ä¼ è¾“æ–¹å‘flag: å†…å­˜->äº¤æ¢åŒº or äº¤æ¢åŒº->å†…å­˜ã€‚ */
-    // Buf &GetSwapBuf();   /* è·å–è¿›ç¨‹å›¾åƒä¼ é€è¯·æ±‚å—Bufå¯¹è±¡å¼•ç”¨ */
-    Buf &GetBFreeList(); /* è·å–è‡ªç”±ç¼“å­˜é˜Ÿåˆ—æ§åˆ¶å—Bufå¯¹è±¡å¼•ç”¨ */
+	Buf *Bread(short dev, int blkno);				 /* ¶ÁÒ»¸ö´ÅÅÌ¿é¡£devÎªÖ÷¡¢´ÎÉè±¸ºÅ£¬blknoÎªÄ¿±ê´ÅÅÌ¿éÂß¼­¿éºÅ¡£ */
+	Buf *Breada(short adev, int blkno, int rablkno); /* ¶ÁÒ»¸ö´ÅÅÌ¿é£¬´øÓĞÔ¤¶Á·½Ê½¡£
+													  * adevÎªÖ÷¡¢´ÎÉè±¸ºÅ¡£blknoÎªÄ¿±ê´ÅÅÌ¿éÂß¼­¿éºÅ£¬Í¬²½·½Ê½¶Áblkno¡£
+													  * rablknoÎªÔ¤¶Á´ÅÅÌ¿éÂß¼­¿éºÅ£¬Òì²½·½Ê½¶Árablkno¡£ */
+	void Bwrite(Buf *bp);							 /* Ğ´Ò»¸ö´ÅÅÌ¿é */
+	void Bdwrite(Buf *bp);							 /* ÑÓ³ÙĞ´´ÅÅÌ¿é */
+	void Bawrite(Buf *bp);							 /* Òì²½Ğ´´ÅÅÌ¿é */
 
-    void SetP(char* mmapaddr)
-    {
-        this->p = mmapaddr;
-    }
-    char* GetP()
-    {
-        return this->p;
-    }
+	void ClrBuf(Buf *bp);	/* Çå¿Õ»º³åÇøÄÚÈİ */
+	void Bflush(short dev); /* ½«devÖ¸¶¨Éè±¸¶ÓÁĞÖĞÑÓ³ÙĞ´µÄ»º´æÈ«²¿Êä³öµ½´ÅÅÌ */
+	bool Swap(int blkno, unsigned long addr, int count, enum Buf::BufFlag flag);
+	/* Swap I/O ÓÃÓÚ½ø³ÌÍ¼ÏñÔÚÄÚ´æºÍÅÌ½»»»ÇøÖ®¼ä´«Êä
+	 * blkno: ½»»»ÇøÖĞÅÌ¿éºÅ£»addr:  ½ø³ÌÍ¼Ïñ(´«ËÍ²¿·Ö)ÄÚ´æÆğÊ¼µØÖ·£»
+	 * count: ½øĞĞ´«Êä×Ö½ÚÊı£¬byteÎªµ¥Î»£»´«Êä·½Ïòflag: ÄÚ´æ->½»»»Çø or ½»»»Çø->ÄÚ´æ¡£ */
+	Buf &GetSwapBuf();	 /* »ñÈ¡½ø³ÌÍ¼Ïñ´«ËÍÇëÇó¿éBuf¶ÔÏóÒıÓÃ */
+	Buf &GetBFreeList(); /* »ñÈ¡×ÔÓÉ»º´æ¶ÓÁĞ¿ØÖÆ¿éBuf¶ÔÏóÒıÓÃ */
 
 private:
-    void GetError(Buf *bp);             /* è·å–I/Oæ“ä½œä¸­å‘ç”Ÿçš„é”™è¯¯ä¿¡æ¯ */
-    void NotAvail(Buf *bp);             /* ä»è‡ªç”±é˜Ÿåˆ—ä¸­æ‘˜ä¸‹æŒ‡å®šçš„ç¼“å­˜æ§åˆ¶å—buf */
-    Buf *InCore(int blkno); /* æ£€æŸ¥æŒ‡å®šå­—ç¬¦å—æ˜¯å¦å·²åœ¨ç¼“å­˜ä¸­ */
+	void GetError(Buf *bp);				/* »ñÈ¡I/O²Ù×÷ÖĞ·¢ÉúµÄ´íÎóĞÅÏ¢ */
+	void NotAvail(Buf *bp);				/* ´Ó×ÔÓÉ¶ÓÁĞÖĞÕªÏÂÖ¸¶¨µÄ»º´æ¿ØÖÆ¿ébuf */
+	Buf *InCore(short adev, int blkno); /* ¼ì²éÖ¸¶¨×Ö·û¿éÊÇ·ñÒÑÔÚ»º´æÖĞ */
 
 private:
-    Buf bFreeList;                           /* è‡ªç”±ç¼“å­˜é˜Ÿåˆ—æ§åˆ¶å— */
-    // Buf SwBuf;                            /* è¿›ç¨‹å›¾åƒä¼ é€è¯·æ±‚å— */
-    Buf m_Buf[NBUF];                         /* ç¼“å­˜æ§åˆ¶å—æ•°ç»„ */
-    unsigned char Buffer[NBUF][BUFFER_SIZE]; /* ç¼“å†²åŒºæ•°ç»„ */
-	//è¿™æ˜¯æ•´ä¸ªæ–‡ä»¶ç³»ç»Ÿç”¨mmapæ˜ å°„åˆ°å†…å­˜åçš„èµ·å§‹åœ°å€
-	char *p;
-    // DeviceManager *m_DeviceManager; /* æŒ‡å‘è®¾å¤‡ç®¡ç†æ¨¡å—å…¨å±€å¯¹è±¡ */
+	Buf bFreeList;							 /* ×ÔÓÉ»º´æ¶ÓÁĞ¿ØÖÆ¿é */
+	Buf SwBuf;								 /* ½ø³ÌÍ¼Ïñ´«ËÍÇëÇó¿é */
+	Buf m_Buf[NBUF];						 /* »º´æ¿ØÖÆ¿éÊı×é */
+	unsigned char Buffer[NBUF][BUFFER_SIZE]; /* »º³åÇøÊı×é */
+
+	DeviceManager *m_DeviceManager; /* Ö¸ÏòÉè±¸¹ÜÀíÄ£¿éÈ«¾Ö¶ÔÏó */
 };
 
 #endif

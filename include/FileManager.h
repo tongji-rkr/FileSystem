@@ -1,3 +1,8 @@
+/*
+ * @Description:
+ * @Date: 2022-09-05 14:30:16
+ * @LastEditTime: 2023-04-02 15:41:15
+ */
 #ifndef FILE_MANAGER_H
 #define FILE_MANAGER_H
 
@@ -5,21 +10,22 @@
 #include "OpenFileManager.h"
 #include "File.h"
 
-/* 
- * æ–‡ä»¶ç®¡ç†ç±»(FileManager)
- * å°è£…äº†æ–‡ä»¶ç³»ç»Ÿçš„å„ç§ç³»ç»Ÿè°ƒç”¨åœ¨æ ¸å¿ƒæ€ä¸‹å¤„ç†è¿‡ç¨‹ï¼Œ
- * å¦‚å¯¹æ–‡ä»¶çš„Open()ã€Close()ã€Read()ã€Write()ç­‰ç­‰
- * å°è£…äº†å¯¹æ–‡ä»¶ç³»ç»Ÿè®¿é—®çš„å…·ä½“ç»†èŠ‚ã€‚
+/*
+ * ÎÄ¼ş¹ÜÀíÀà(FileManager)
+ * ·â×°ÁËÎÄ¼şÏµÍ³µÄ¸÷ÖÖÏµÍ³µ÷ÓÃÔÚºËĞÄÌ¬ÏÂ´¦Àí¹ı³Ì£¬
+ * Èç¶ÔÎÄ¼şµÄOpen()¡¢Close()¡¢Read()¡¢Write()µÈµÈ
+ * ·â×°ÁË¶ÔÎÄ¼şÏµÍ³·ÃÎÊµÄ¾ßÌåÏ¸½Ú¡£
+ * ´Ë´¦²ÉÓÃÁËµ¥ÀıÉè¼ÆÄ£Ê½
  */
 class FileManager
 {
 public:
-	/* ç›®å½•æœç´¢æ¨¡å¼ï¼Œç”¨äºNameI()å‡½æ•° */
+	/* Ä¿Â¼ËÑË÷Ä£Ê½£¬ÓÃÓÚNameI()º¯Êı */
 	enum DirectorySearchMode
 	{
-		OPEN = 0,		/* ä»¥æ‰“å¼€æ–‡ä»¶æ–¹å¼æœç´¢ç›®å½• */
-		CREATE = 1,		/* ä»¥æ–°å»ºæ–‡ä»¶æ–¹å¼æœç´¢ç›®å½• */
-		DELETE = 2		/* ä»¥åˆ é™¤æ–‡ä»¶æ–¹å¼æœç´¢ç›®å½• */
+		OPEN = 0,	/* ÒÔ´ò¿ªÎÄ¼ş·½Ê½ËÑË÷Ä¿Â¼ */
+		CREATE = 1, /* ÒÔĞÂ½¨ÎÄ¼ş·½Ê½ËÑË÷Ä¿Â¼ */
+		DELETE = 2	/* ÒÔÉ¾³ıÎÄ¼ş·½Ê½ËÑË÷Ä¿Â¼ */
 	};
 
 	/* Functions */
@@ -29,135 +35,161 @@ public:
 	/* Destructors */
 	~FileManager();
 
-
-	/* 
-	 * @comment åˆå§‹åŒ–å¯¹å…¨å±€å¯¹è±¡çš„å¼•ç”¨
+	/*
+	 * @comment ³õÊ¼»¯¶ÔÈ«¾Ö¶ÔÏóµÄÒıÓÃ
 	 */
 	void Initialize();
 
-	/* 
-	 * @comment Open()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Open()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Open();
 
-	/* 
-	 * @comment Creat()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Creat()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Creat();
 
-	/* 
-	 * @comment Open()ã€Creat()ç³»ç»Ÿè°ƒç”¨çš„å…¬å…±éƒ¨åˆ†
+	/*
+	 * @comment Open()¡¢Creat()ÏµÍ³µ÷ÓÃµÄ¹«¹²²¿·Ö
 	 */
-	void Open1(Inode* pInode, int mode, int trf);
+	void Open1(Inode *pInode, int mode, int trf);
 
-	/* 
-	 * @comment Close()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Close()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Close();
 
-	/* 
-	 * @comment Seek()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Seek()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Seek();
 
-	/* 
-	 * @comment Dup()å¤åˆ¶è¿›ç¨‹æ‰“å¼€æ–‡ä»¶æè¿°ç¬¦
+	/*
+	 * @comment Dup()¸´ÖÆ½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û
 	 */
 	void Dup();
 
-	/* 
-	 * @comment FStat()è·å–æ–‡ä»¶ä¿¡æ¯
+	/*
+	 * @comment FStat()»ñÈ¡ÎÄ¼şĞÅÏ¢
 	 */
 	void FStat();
 
-	/* 
-	 * @comment FStat()è·å–æ–‡ä»¶ä¿¡æ¯
+	/*
+	 * @comment FStat()»ñÈ¡ÎÄ¼şĞÅÏ¢
 	 */
 	void Stat();
 
-	/* FStat()å’ŒStat()ç³»ç»Ÿè°ƒç”¨çš„å…±äº«ä¾‹ç¨‹ */
-	void Stat1(Inode* pInode, unsigned long statBuf);
+	/* FStat()ºÍStat()ÏµÍ³µ÷ÓÃµÄ¹²ÏíÀı³Ì */
+	void Stat1(Inode *pInode, unsigned long statBuf);
 
-	/* 
-	 * @comment Read()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Read()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Read();
 
-	/* 
-	 * @comment Write()ç³»ç»Ÿè°ƒç”¨å¤„ç†è¿‡ç¨‹
+	/*
+	 * @comment Write()ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
 	void Write();
 
-	/* 
-	 * @comment è¯»å†™ç³»ç»Ÿè°ƒç”¨å…¬å…±éƒ¨åˆ†ä»£ç 
+	/*
+	 * @comment ¶ÁĞ´ÏµÍ³µ÷ÓÃ¹«¹²²¿·Ö´úÂë
 	 */
 	void Rdwr(enum File::FileFlags mode);
 
-	
-	/* 
-	 * @comment ç›®å½•æœç´¢ï¼Œå°†è·¯å¾„è½¬åŒ–ä¸ºç›¸åº”çš„Inodeï¼Œ
-	 * è¿”å›ä¸Šé”åçš„Inode
+	/*
+	 * @comment Pipe()¹ÜµÀ½¨Á¢ÏµÍ³µ÷ÓÃ´¦Àí¹ı³Ì
 	 */
-	Inode* NameI(char (*func)(), enum DirectorySearchMode mode);
+	void Pipe();
 
-	/* 
-	 * @comment è·å–è·¯å¾„ä¸­çš„ä¸‹ä¸€ä¸ªå­—ç¬¦
+	/*
+	 * @comment ¹ÜµÀ¶Á²Ù×÷
+	 */
+	void ReadP(File *pFile);
+
+	/*
+	 * @comment ¹ÜµÀĞ´²Ù×÷
+	 */
+	void WriteP(File *pFile);
+
+	/*
+	 * @comment Ä¿Â¼ËÑË÷£¬½«Â·¾¶×ª»¯ÎªÏàÓ¦µÄInode£¬
+	 * ·µ»ØÉÏËøºóµÄInode
+	 */
+	Inode *NameI(char (*func)(), enum DirectorySearchMode mode);
+
+	/*
+	 * @comment »ñÈ¡Â·¾¶ÖĞµÄÏÂÒ»¸ö×Ö·û
 	 */
 	static char NextChar();
 
-	/* 
-	 * @comment è¢«Creat()ç³»ç»Ÿè°ƒç”¨ä½¿ç”¨ï¼Œç”¨äºä¸ºåˆ›å»ºæ–°æ–‡ä»¶åˆ†é…å†…æ ¸èµ„æº
-	 kyf:å†™å­˜diskinodeçš„â€œæ–‡ä»¶â€
+	/*
+	 * @comment ±»Creat()ÏµÍ³µ÷ÓÃÊ¹ÓÃ£¬ÓÃÓÚÎª´´½¨ĞÂÎÄ¼ş·ÖÅäÄÚºË×ÊÔ´
 	 */
-	Inode* MakNode(unsigned int mode);
-
-	/* 
-	 * @comment å‘çˆ¶ç›®å½•çš„ç›®å½•æ–‡ä»¶å†™å…¥ä¸€ä¸ªç›®å½•é¡¹
-	 */
-	void WriteDir(Inode* pInode);
+	Inode *MakNode(unsigned int mode);
 
 	/*
-	 * @comment è®¾ç½®å½“å‰å·¥ä½œè·¯å¾„
+	 * @comment Ïò¸¸Ä¿Â¼µÄÄ¿Â¼ÎÄ¼şĞ´ÈëÒ»¸öÄ¿Â¼Ïî
 	 */
-	void SetCurDir(char* pathname);
+	void WriteDir(Inode *pInode);
 
-	/* 
-	 * @comment æ£€æŸ¥å¯¹æ–‡ä»¶æˆ–ç›®å½•çš„æœç´¢ã€è®¿é—®æƒé™ï¼Œä½œä¸ºç³»ç»Ÿè°ƒç”¨çš„è¾…åŠ©å‡½æ•°
+	/*
+	 * @comment ÉèÖÃµ±Ç°¹¤×÷Â·¾¶
 	 */
-	int Access(Inode* pInode, unsigned int mode);
+	void SetCurDir(char *pathname);
 
+	/*
+	 * @comment ¼ì²é¶ÔÎÄ¼ş»òÄ¿Â¼µÄËÑË÷¡¢·ÃÎÊÈ¨ÏŞ£¬×÷ÎªÏµÍ³µ÷ÓÃµÄ¸¨Öúº¯Êı
+	 */
+	int Access(Inode *pInode, unsigned int mode);
 
-	/* åˆ›å»ºæ–‡ä»¶çš„å¼‚åå¼•ç”¨ */
+	/*
+	 * @comment ¼ì²éÎÄ¼şÊÇ·ñÊôÓÚµ±Ç°ÓÃ»§
+	 */
+	Inode *Owner();
+
+	/* ¸Ä±äÎÄ¼ş·ÃÎÊÄ£Ê½ */
+	void ChMod();
+
+	/* ¸Ä±äÎÄ¼şÎÄ¼şËùÓĞÕßuser ID¼°Æägroup ID */
+	void ChOwn();
+
+	/* ¸Ä±äµ±Ç°¹¤×÷Ä¿Â¼ */
+	void ChDir();
+
+	/* ´´½¨ÎÄ¼şµÄÒìÃûÒıÓÃ */
 	void Link();
 
-	/* å–æ¶ˆæ–‡ä»¶ */
+	/* È¡ÏûÎÄ¼ş */
 	void UnLink();
 
-	/* ç”¨äºå»ºç«‹ç‰¹æ®Šè®¾å¤‡æ–‡ä»¶çš„ç³»ç»Ÿè°ƒç”¨ */
+	/* ÓÃÓÚ½¨Á¢ÌØÊâÉè±¸ÎÄ¼şµÄÏµÍ³µ÷ÓÃ */
 	void MkNod();
 
-	/*åˆ‡æ¢è·¯å¾„*/
-	void ChDir();
 public:
-	/* æ ¹ç›®å½•å†…å­˜Inode */
-	Inode* rootDirInode;
+	/* ¸ùÄ¿Â¼ÄÚ´æInode */
+	Inode *rootDirInode;
 
-	/* å¯¹å…¨å±€å¯¹è±¡g_FileSystemçš„å¼•ç”¨ï¼Œè¯¥å¯¹è±¡è´Ÿè´£ç®¡ç†æ–‡ä»¶ç³»ç»Ÿå­˜å‚¨èµ„æº */
-	FileSystem* m_FileSystem;
-	
-	/* å¯¹å…¨å±€å¯¹è±¡g_InodeTableçš„å¼•ç”¨ï¼Œè¯¥å¯¹è±¡è´Ÿè´£å†…å­˜Inodeè¡¨çš„ç®¡ç† */
-	InodeTable* m_InodeTable;
+	/* ¶ÔÈ«¾Ö¶ÔÏóg_FileSystemµÄÒıÓÃ£¬¸Ã¶ÔÏó¸ºÔğ¹ÜÀíÎÄ¼şÏµÍ³´æ´¢×ÊÔ´ */
+	FileSystem *m_FileSystem;
 
-	/* å¯¹å…¨å±€å¯¹è±¡g_OpenFileTableçš„å¼•ç”¨ï¼Œè¯¥å¯¹è±¡è´Ÿè´£æ‰“å¼€æ–‡ä»¶è¡¨é¡¹çš„ç®¡ç† */
-	OpenFileTable* m_OpenFileTable;
+	/* ¶ÔÈ«¾Ö¶ÔÏóg_InodeTableµÄÒıÓÃ£¬¸Ã¶ÔÏó¸ºÔğÄÚ´æInode±íµÄ¹ÜÀí */
+	InodeTable *m_InodeTable;
+
+	/* ¶ÔÈ«¾Ö¶ÔÏóg_OpenFileTableµÄÒıÓÃ£¬¸Ã¶ÔÏó¸ºÔğ´ò¿ªÎÄ¼ş±íÏîµÄ¹ÜÀí */
+	OpenFileTable *m_OpenFileTable;
 };
 
-
+/*
+ * Ä¿Â¼Ïî½á¹¹
+ * ÓÃÓÚ´æ´¢Ä¿Â¼ÏîÖĞµÄInode±àºÅºÍÂ·¾¶Ãû
+ */
 class DirectoryEntry
 {
 	/* static members */
 public:
-	static const int DIRSIZ = 28;	/* ç›®å½•é¡¹ä¸­è·¯å¾„éƒ¨åˆ†çš„æœ€å¤§å­—ç¬¦ä¸²é•¿åº¦ */
+	static const int DIRSIZ = 28; /* Ä¿Â¼ÏîÖĞÂ·¾¶²¿·ÖµÄ×î´ó×Ö·û´®³¤¶È */
 
 	/* Functions */
 public:
@@ -168,8 +200,8 @@ public:
 
 	/* Members */
 public:
-	int m_ino;		/* ç›®å½•é¡¹ä¸­Inodeç¼–å·éƒ¨åˆ† */
-	char m_name[DIRSIZ];	/* ç›®å½•é¡¹ä¸­è·¯å¾„åéƒ¨åˆ† */
+	int m_ino;			 /* Ä¿Â¼ÏîÖĞInode±àºÅ²¿·Ö */
+	char m_name[DIRSIZ]; /* Ä¿Â¼ÏîÖĞÂ·¾¶Ãû²¿·Ö */
 };
 
 #endif

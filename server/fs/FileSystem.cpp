@@ -1,475 +1,567 @@
-//fqh
-#include <string.h>
-#include "time.h"
-#include "User.h"
+/*
+ * @Description: this file defines the class SuperBlock
+ * @Date: 2022-09-05 14:30:16
+ * @LastEditTime: 2023-04-02 15:56:26
+ */
 #include "FileSystem.h"
-#include "SecondFileKernel.h"
+#include "Utility.h"
+#include "New.h"
+#include "Kernel.h"
+#include "OpenFileManager.h"
+#include "TimeInterrupt.h"
+#include "Video.h"
 
 /*==============================class SuperBlock===================================*/
-/* ç³»ç»Ÿå…¨å±€è¶…çº§å—SuperBlockå¯¹è±¡ */
+/* ÏµÍ³È«¾Ö³¬¼¶¿éSuperBlock¶ÔÏó */
 SuperBlock g_spb;
 
 SuperBlock::SuperBlock()
 {
-	pthread_mutex_init(&s_ilock,NULL);
-	pthread_mutex_init(&s_flock,NULL);
-	//nothing to do here
+	// nothing to do here
 }
 
 SuperBlock::~SuperBlock()
 {
-	pthread_mutex_destroy(&s_ilock);
-	pthread_mutex_destroy(&s_flock);
-	//nothing to do here
+	// nothing to do here
+}
+
+/*==============================class Mount===================================*/
+/*
+ * ÎÄ¼şÏµÍ³×°Åä¿é(Mount)µÄ¶¨Òå¡£
+ * ×°Åä¿éÓÃÓÚÊµÏÖ×ÓÎÄ¼şÏµÍ³Óë
+ * ¸ùÎÄ¼şÏµÍ³µÄÁ¬½Ó¡£
+ */
+/*
+	¿éÉè±¸µÄÎÄ¼şÏµÍ³Í¨¹ı¹ÒÔÚ²Ù×÷±»ÏµÍ³Ê¶±ğ
+*/
+Mount::Mount()
+{
+	this->m_dev = -1;	   /* ÎÄ¼şÏµÍ³Éè±¸ºÅ³õÊ¼»¯ */
+	this->m_spb = NULL;	   /* Ö¸ÏòÎÄ¼şÏµÍ³µÄSuper Block¶ÔÏóÔÚÄÚ´æÖĞµÄ¸±±¾³õÊ¼»¯ */
+	this->m_inodep = NULL; /* Ö¸Ïò¹ÒÔØ×ÓÎÄ¼şÏµÍ³µÄÄÚ´æINode³õÊ¼»¯ */
+}
+
+Mount::~Mount()
+{
+	this->m_dev = -1;	   /*ÖØÖÃÎÄ¼şÏµÍ³Éè±¸ºÅ*/
+	this->m_inodep = NULL; /*ÖØÖÃÖ¸Ïò¹ÒÔØ×ÓÎÄ¼şÏµÍ³µÄÄÚ´æINodeÖ¸Õë*/
+	// ÊÍ·ÅÄÚ´æSuperBlock¸±±¾
+	if (this->m_spb != NULL)
+	{
+		/*µ±Ç°×°Åä¿éÖĞµÄSuperBlock¸±±¾Ö¸Õë²»Îª¿Õ£¬ÊÍ·ÅÄÚ´æ*/
+		delete this->m_spb;
+		this->m_spb = NULL;
+	}
 }
 
 /*==============================class FileSystem===================================*/
+/*
+ * ÎÄ¼şÏµÍ³Àà(FileSystem)¹ÜÀíÎÄ¼ş´æ´¢Éè±¸ÖĞ
+ * µÄ¸÷Àà´æ´¢×ÊÔ´£¬´ÅÅÌ¿é¡¢Íâ´æINodeµÄ·ÖÅä¡¢
+ * ÊÍ·Å¡£
+ */
 FileSystem::FileSystem()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 FileSystem::~FileSystem()
 {
-	//nothing to do here
-}
-
-void FileSystem::Initialize()
-{
-	this->m_BufferManager = &SecondFileKernel::Instance().GetBufferManager();
-	this->updlock = 0;
-}
-
-void FileSystem::LoadSuperBlock()
-{
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
-	Buf* pBuf;
-
-	// è¯»å…¥ç£ç›˜ä¸Šçš„ä¸¤ä¸ªæ‰‡åŒº
-	for (int i = 0; i < 2; i++)
-	{
-		int* p = (int *)&g_spb + i * 128;
-		pBuf = bufMgr.Bread(FileSystem::SUPER_BLOCK_SECTOR_NUMBER + i);
-
-		memcpy(p, pBuf->b_addr, BufferManager::BUFFER_SIZE);
-
-		bufMgr.Brelse(pBuf);
-	}
-	if (NOERROR != u.u_error)
-	{
-		printf("[error] Load SuperBlock Error....!\n");
-	}
-
-	// g_spb.s_flock = 0;
-	// g_spb.s_ilock = 0;
-	g_spb.s_ronly = 0;
-	time_t cur_time;
-	time(&cur_time);
-	g_spb.s_time = cur_time;
-	pthread_mutex_init(&(g_spb.s_flock),NULL);
-	pthread_mutex_init(&(g_spb.s_ilock),NULL);
-
-}
-
-SuperBlock* FileSystem::GetFS()
-{
-	return &g_spb;
+	// nothing to do here
 }
 
 /*
- * @comment å°†SuperBlockå¯¹è±¡çš„å†…å­˜å‰¯æœ¬æ›´æ–°åˆ°
- * å­˜å‚¨è®¾å¤‡çš„SuperBlockä¸­å»
+ * @comment ³õÊ¼»¯³ÉÔ±±äÁ¿
  */
+void FileSystem::Initialize()
+{
+	this->m_BufferManager = &Kernel::Instance().GetBufferManager(); /* »ñµÃ»º³å¹ÜÀíÆ÷¶ÔÏóµÄÖ¸Õë */
+	/* Update()º¯ÊıµÄËø£¬¸Ãº¯ÊıÓÃÓÚÍ¬²½ÄÚ´æ¸÷¸öSuperBlock¸±±¾ÒÔ¼°
+	 * ´æ´¢Éè±¸ÉÏµÄSuperBlock¸±±¾£¬·ÀÖ¹¶à¸ö½ø³ÌÍ¬Ê±µ÷ÓÃ¸Ãº¯Êı
+	 */
+	this->updlock = 0;
+}
+
+/*¸Ãº¯ÊıÓÃÓÚÔÚÏµÍ³³õÊ¼»¯Ê±¶ÁÈësuperblock£¬Í¬Ê±ÔÚmountÊı×éÖĞ³õÊ¼»¯¸ùÎÄ¼şÏµÍ³*/
+void FileSystem::LoadSuperBlock()
+{
+	/*»ñÈ¡µ±Ç°½ø³ÌµÄUser¶ÔÏó*/
+	User &u = Kernel::Instance().GetUser();
+	/*»ñÈ¡»º³å¹ÜÀíÆ÷¶ÔÏóµÄÒıÓÃ*/
+	BufferManager &bufMgr = Kernel::Instance().GetBufferManager();
+	/*¶¨Òå»º³åÇøÖ¸Õë*/
+	Buf *pBuf;
+
+	/* ¶ÁÈ¡´ÅÅÌÉÏµÄSuperBlock²¢ÔÚÄÚ´æÖĞ´´½¨¸±±¾*/
+	for (int i = 0; i < 2; i++)
+	{
+		/*ÓÉÓÚSuperBlock´óĞ¡1024BitÕ¼ÓÃ2¸öÅÌ¿é£¬Òò´ËĞèÒª¶ÁÈ¡Á½´Î*/
+		int *p = (int *)&g_spb + i * 128;
+
+		/*Í¨¹ı»º³å¹ÜÀíÆ÷¶ÁÈ¡´ÅÅÌÉÏµÄSuperBlock*/
+		pBuf = bufMgr.Bread(DeviceManager::ROOTDEV, FileSystem::SUPER_BLOCK_SECTOR_NUMBER + i);
+
+		/*½«¶ÁÈ¡µ½µÄSuperBlock¿½±´µ½ÄÚ´æÖĞµÄSuperBlock¸±±¾ÖĞ*/
+		Utility::DWordCopy((int *)pBuf->b_addr, p, 128);
+
+		/*ÊÍ·Å»º³åÇø*/
+		bufMgr.Brelse(pBuf);
+	}
+	if (User::NOERROR != u.u_error)
+	{
+		/*¶ÁÈ¡SuperBlockÊ§°Ü£¬ÏµÍ³Í£Ö¹ÔËĞĞ*/
+		Utility::Panic("Load SuperBlock Error....!\n");
+	}
+
+	/*³õÊ¼»¯¸ùÎÄ¼şÏµÍ³£¬ÌîÈë¸ùÎÄ¼şÏµÍ³µÄÉè±¸ºÅºÍSuperBlock¸±±¾µÄµØÖ·*/
+	this->m_Mount[0].m_dev = DeviceManager::ROOTDEV;
+	this->m_Mount[0].m_spb = &g_spb;
+
+	/*¸üĞÂSuperBlockµÄÏà¹ØĞÅÏ¢*/
+	g_spb.s_flock = 0; /* ÎÄ¼şÏµÍ³Ëø */
+	g_spb.s_ilock = 0;
+	g_spb.s_ronly = 0;
+	g_spb.s_time = Time::time; /* ÎÄ¼şÏµÍ³×îºóÒ»´Î±»ĞŞ¸ÄµÄÊ±¼ä */
+}
+
+/*¸Ãº¯ÊıÓÃÓÚ¸ù¾İÎÄ¼ş´æ´¢Éè±¸µÄÉè±¸ºÅdev»ñÈ¡¸ÃÎÄ¼şÏµÍ³µÄSuperBlock*/
+SuperBlock *FileSystem::GetFS(short dev)
+{
+	SuperBlock *sb; /* ¶¨ÒåSuperBlockÖ¸Õë */
+
+	/* ±éÀúÏµÍ³×°Åä¿é±í£¬Ñ°ÕÒÉè±¸ºÅÎªdevµÄÉè±¸ÖĞÎÄ¼şÏµÍ³µÄSuperBlock */
+	for (int i = 0; i < FileSystem::NMOUNT; i++)
+	{
+		if (this->m_Mount[i].m_spb != NULL && this->m_Mount[i].m_dev == dev)
+		{
+			/* »ñÈ¡SuperBlockµÄµØÖ· */
+			sb = this->m_Mount[i].m_spb;
+			if (sb->s_nfree > 100 || sb->s_ninode > 100)
+			{
+				/* Èç¹ûSuperBlockÖĞµÄ¿ÕÏĞÅÌ¿éÊı»ò¿ÕÏĞÍâ´æINodeÊı´óÓÚ100£¬
+				 * Ôò½«ÆäÖÃÎª0£¬·ÀÖ¹ÏµÍ³±ÀÀ£
+				 */
+				sb->s_nfree = 0;
+				sb->s_ninode = 0;
+			}
+			/* ·µ»ØSuperBlockµÄµØÖ· */
+			return sb;
+		}
+	}
+
+	Utility::Panic("No File System!"); /* Ã»ÓĞÕÒµ½¶ÔÓ¦µÄÎÄ¼şÏµÍ³£¬ÏµÍ³Í£Ö¹ÔËĞĞ */
+	return NULL;					   /* ÎªÁË±ÜÃâ±àÒëÆ÷¾¯¸æ£¬ÕâÀï·µ»ØNULL */
+}
+
+/* ¸Ãº¯ÊıÓÃÓÚ½«SuperBlock¶ÔÏóµÄÄÚ´æ¸±±¾¸üĞÂµ½´æ´¢Éè±¸µÄSuperBlockÖĞÈ¥*/
 void FileSystem::Update()
 {
-	//int i;
-	SuperBlock* sb = &g_spb;
-	Buf* pBuf;
+	int i;
+	SuperBlock *sb;
+	Buf *pBuf;
 
-
-	// å¯¹ Update å‡½æ•°è¿›è¡Œä¸Šé”
-
-	/* åŒæ­¥SuperBlockåˆ°ç£ç›˜ */
-
-	
-	/* å¦‚æœè¯¥SuperBlockå†…å­˜å‰¯æœ¬æ²¡æœ‰è¢«ä¿®æ”¹ï¼Œç›´æ¥ç®¡ç†inodeå’Œç©ºé—²ç›˜å—è¢«ä¸Šé”æˆ–è¯¥æ–‡ä»¶ç³»ç»Ÿæ˜¯åªè¯»æ–‡ä»¶ç³»ç»Ÿ */
-	if(sb->s_fmod == 0 || sb->s_ronly != 0)//sb->s_ilock != 0 || sb->s_flock != 0 ||
+	/* ÁíÒ»½ø³ÌÕıÔÚ½øĞĞÍ¬²½£¬ÔòÖ±½Ó·µ»Ø */
+	if (this->updlock)
 	{
-		printf("[info] FileSystem::Update æå‰ç»“æŸï¼Œæ— éœ€Update\n");
 		return;
 	}
 
-	pthread_mutex_lock(&sb->s_ilock);
-	pthread_mutex_lock(&sb->s_flock);
-	cout << "[Update] sb->s_flock ä¸Šé”" <<endl;
-	/* æ¸…SuperBlockä¿®æ”¹æ ‡å¿— */
-	sb->s_fmod = 0;
-	/* å†™å…¥SuperBlockæœ€åå­˜è®¿æ—¶é—´ */
-	time_t cur_time;
-	time(&cur_time);
-	sb->s_time = cur_time;
-	/* 
-	* ä¸ºå°†è¦å†™å›åˆ°ç£ç›˜ä¸Šå»çš„SuperBlockç”³è¯·ä¸€å—ç¼“å­˜ï¼Œç”±äºç¼“å­˜å—å¤§å°ä¸º512å­—èŠ‚ï¼Œ
-	* SuperBlockå¤§å°ä¸º1024å­—èŠ‚ï¼Œå æ®2ä¸ªè¿ç»­çš„æ‰‡åŒºï¼Œæ‰€ä»¥éœ€è¦2æ¬¡å†™å…¥æ“ä½œã€‚
-	*/
-	for(int j = 0; j < 2; j++)
+	/* ÉèÖÃUpdate()º¯ÊıµÄ»¥³âËø£¬·ÀÖ¹ÆäËü½ø³ÌÖØÈë */
+	this->updlock++;
+
+	/* Í¬²½SuperBlockµ½´ÅÅÌ */
+	for (i = 0; i < FileSystem::NMOUNT; i++)
 	{
-		/* ç¬¬ä¸€æ¬¡pæŒ‡å‘SuperBlockçš„ç¬¬0å­—èŠ‚ï¼Œç¬¬äºŒæ¬¡pæŒ‡å‘ç¬¬512å­—èŠ‚ */
-		int* p = (int *)sb + j * 128;
+		/* Èç¹û¸ÃMount×°Åä¿é¶ÔÓ¦Ä³¸öÎÄ¼şÏµÍ³ */
+		if (this->m_Mount[i].m_spb != NULL) /* ¸ÃMount×°Åä¿é¶ÔÓ¦Ä³¸öÎÄ¼şÏµÍ³ */
+		{
+			sb = this->m_Mount[i].m_spb; /* »ñÈ¡SuperBlockµÄµØÖ· */
 
-		/* å°†è¦å†™å…¥åˆ°è®¾å¤‡devä¸Šçš„SUPER_BLOCK_SECTOR_NfUMBER + jæ‰‡åŒºä¸­å» */
-		pBuf = this->m_BufferManager->GetBlk(FileSystem::SUPER_BLOCK_SECTOR_NUMBER + j);
+			/* Èç¹û¸ÃSuperBlockÄÚ´æ¸±±¾Ã»ÓĞ±»ĞŞ¸Ä£¬Ö±½Ó¹ÜÀíinodeºÍ¿ÕÏĞÅÌ¿é±»ÉÏËø»ò¸ÃÎÄ¼şÏµÍ³ÊÇÖ»¶ÁÎÄ¼şÏµÍ³ */
+			if (sb->s_fmod == 0 || sb->s_ilock != 0 || sb->s_flock != 0 || sb->s_ronly != 0)
+			{
+				continue;
+			}
 
-		/* å°†SuperBlockä¸­ç¬¬0 - 511å­—èŠ‚å†™å…¥ç¼“å­˜åŒº */
-		memcpy(pBuf->b_addr, p, 512);
+			/* ÇåSuperBlockĞŞ¸Ä±êÖ¾ */
+			sb->s_fmod = 0;
+			/* Ğ´ÈëSuperBlock×îºó´æ·ÃÊ±¼ä */
+			sb->s_time = Time::time;
 
-		/* å°†ç¼“å†²åŒºä¸­çš„æ•°æ®å†™åˆ°ç£ç›˜ä¸Š */
-		this->m_BufferManager->Bwrite(pBuf);
+			/*
+			 * Îª½«ÒªĞ´»Øµ½´ÅÅÌÉÏÈ¥µÄSuperBlockÉêÇëÒ»¿é»º´æ£¬ÓÉÓÚ»º´æ¿é´óĞ¡Îª512×Ö½Ú£¬
+			 * SuperBlock´óĞ¡Îª1024×Ö½Ú£¬Õ¼¾İ2¸öÁ¬ĞøµÄÉÈÇø£¬ËùÒÔĞèÒª2´ÎĞ´Èë²Ù×÷¡£
+			 */
+			for (int j = 0; j < 2; j++)
+			{
+				/* µÚÒ»´ÎpÖ¸ÏòSuperBlockµÄµÚ0×Ö½Ú£¬µÚ¶ş´ÎpÖ¸ÏòµÚ512×Ö½Ú */
+				int *p = (int *)sb + j * 128;
+
+				/* ½«ÒªĞ´Èëµ½Éè±¸devÉÏµÄSUPER_BLOCK_SECTOR_NUMBER + jÉÈÇøÖĞÈ¥ */
+				pBuf = this->m_BufferManager->GetBlk(this->m_Mount[i].m_dev, FileSystem::SUPER_BLOCK_SECTOR_NUMBER + j);
+
+				/* ½«SuperBlockÖĞµÚ0 - 511×Ö½ÚĞ´Èë»º´æÇø */
+				Utility::DWordCopy(p, (int *)pBuf->b_addr, 128);
+
+				/* ½«»º³åÇøÖĞµÄÊı¾İĞ´µ½´ÅÅÌÉÏ */
+				this->m_BufferManager->Bwrite(pBuf);
+			}
+		}
 	}
-	//kyf ä»…åˆ¤æ–­æ— é”ï¼Œä¸åŠ é”ï¼Œä¹Ÿå°±æ˜¯unixåœ¨åˆšä¸Šå®Œé”æ—¶è§£é”ï¼Œæ­¤å¤„æ”¹è¿›
-	pthread_mutex_unlock(&sb->s_ilock);
-	pthread_mutex_unlock(&sb->s_flock);
-	cout << "[Update] sb->s_flockè§£é”!" <<endl;
-	/* åŒæ­¥ä¿®æ”¹è¿‡çš„å†…å­˜Inodeåˆ°å¯¹åº”å¤–å­˜Inode */
+
+	/* Í¬²½ĞŞ¸Ä¹ıµÄÄÚ´æInodeµ½¶ÔÓ¦Íâ´æInode */
 	g_InodeTable.UpdateInodeTable();
 
-	/* æ¸…é™¤Update()å‡½æ•°é” */
+	/* Çå³ıUpdate()º¯ÊıËø */
 	this->updlock = 0;
 
-	/* å°†å»¶è¿Ÿå†™çš„ç¼“å­˜å—å†™åˆ°ç£ç›˜ä¸Š */
-	this->m_BufferManager->Bflush();
+	/* ½«ÑÓ³ÙĞ´µÄ»º´æ¿éĞ´µ½´ÅÅÌÉÏ */
+	this->m_BufferManager->Bflush(DeviceManager::NODEV);
 }
 
-/*
- * @comment  åœ¨å­˜å‚¨è®¾å¤‡devä¸Šåˆ†é…ä¸€ä¸ªç©ºé—²
- * å¤–å­˜INodeï¼Œä¸€èˆ¬ç”¨äºåˆ›å»ºæ–°çš„æ–‡ä»¶ã€‚
- */
-Inode* FileSystem::IAlloc()
+/* ¸Ãº¯ÊıÓÃÓÚ´ÓÉè±¸devÉÏ·ÖÅäÒ»¸ö¿ÕÏĞµÄÍâ´æInode */
+Inode *FileSystem::IAlloc(short dev)
 {
-	SuperBlock* sb;
-	Buf* pBuf;
-	Inode* pNode;
-	User& u = SecondFileKernel::Instance().GetUser();
-	int ino;	/* åˆ†é…åˆ°çš„ç©ºé—²å¤–å­˜Inodeç¼–å· */
+	SuperBlock *sb;							/* ¶¨ÒåSuperBlockÖ¸Õë */
+	Buf *pBuf;								/* ¶¨Òå»º³åÇøÖ¸Õë */
+	Inode *pNode;							/* ¶¨ÒåInodeÖ¸Õë */
+	User &u = Kernel::Instance().GetUser(); /* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
+	int ino;								/* ·ÖÅäµ½µÄ¿ÕÏĞÍâ´æInode±àºÅ */
 
-	/* è·å–ç›¸åº”è®¾å¤‡çš„SuperBlockå†…å­˜å‰¯æœ¬ */
-	sb = this->GetFS();
+	/* »ñÈ¡ÏàÓ¦Éè±¸µÄSuperBlockÄÚ´æ¸±±¾ */
+	sb = this->GetFS(dev);
 
-
-	/* å¦‚æœSuperBlockç©ºé—²Inodeè¡¨è¢«ä¸Šé”ï¼Œåˆ™ç¡çœ ç­‰å¾…è‡³è§£é” */
-	// while(sb->s_ilock)
-	// {
-	// 	u.u_procp->Sleep((unsigned long)&sb->s_ilock, ProcessManager::PINOD);
-	// }
-
-	/* 
-	 * SuperBlockç›´æ¥ç®¡ç†çš„ç©ºé—²Inodeç´¢å¼•è¡¨å·²ç©ºï¼Œ
-	 * å¿…é¡»åˆ°ç£ç›˜ä¸Šæœç´¢ç©ºé—²Inodeã€‚å…ˆå¯¹inodeåˆ—è¡¨ä¸Šé”ï¼Œ
-	 * å› ä¸ºåœ¨ä»¥ä¸‹ç¨‹åºä¸­ä¼šè¿›è¡Œè¯»ç›˜æ“ä½œå¯èƒ½ä¼šå¯¼è‡´è¿›ç¨‹åˆ‡æ¢ï¼Œ
-	 * å…¶ä»–è¿›ç¨‹æœ‰å¯èƒ½è®¿é—®è¯¥ç´¢å¼•è¡¨ï¼Œå°†ä¼šå¯¼è‡´ä¸ä¸€è‡´æ€§ã€‚
-	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-	if(sb->s_ninode <= 0)
+	/* Èç¹ûSuperBlock¿ÕÏĞInode±í±»ÉÏËø£¬ÔòË¯ÃßµÈ´ıÖÁ½âËø */
+	while (sb->s_ilock)
 	{
-		/* ç©ºé—²Inodeç´¢å¼•è¡¨ä¸Šé” */
-		//sb->s_ilock++;
-		pthread_mutex_lock(&sb->s_ilock);
-		/* å¤–å­˜Inodeç¼–å·ä»0å¼€å§‹ï¼Œè¿™ä¸åŒäºUnix V6ä¸­å¤–å­˜Inodeä»1å¼€å§‹ç¼–å· */
+		/* Ë¯ÃßµÈ´ıÖÁSuperBlock¿ÕÏĞInode±í½âËø */
+		u.u_procp->Sleep((unsigned long)&sb->s_ilock, ProcessManager::PINOD);
+	}
+
+	/*
+	 * SuperBlockÖ±½Ó¹ÜÀíµÄ¿ÕÏĞInodeË÷Òı±íÒÑ¿Õ£¬
+	 * ±ØĞëµ½´ÅÅÌÉÏËÑË÷¿ÕÏĞInode¡£ÏÈ¶ÔinodeÁĞ±íÉÏËø£¬
+	 * ÒòÎªÔÚÒÔÏÂ³ÌĞòÖĞ»á½øĞĞ¶ÁÅÌ²Ù×÷¿ÉÄÜ»áµ¼ÖÂ½ø³ÌÇĞ»»£¬
+	 * ÆäËû½ø³ÌÓĞ¿ÉÄÜ·ÃÎÊ¸ÃË÷Òı±í£¬½«»áµ¼ÖÂ²»Ò»ÖÂĞÔ¡£
+	 */
+	if (sb->s_ninode <= 0)
+	{
+		/* ¿ÕÏĞInodeË÷Òı±íÉÏËø */
+		sb->s_ilock++;
+
+		/* Íâ´æInode±àºÅ´Ó0¿ªÊ¼£¬Õâ²»Í¬ÓÚUnix V6ÖĞÍâ´æInode´Ó1¿ªÊ¼±àºÅ */
 		ino = -1;
 
-		/* ä¾æ¬¡è¯»å…¥ç£ç›˜InodeåŒºä¸­çš„ç£ç›˜å—ï¼Œæœç´¢å…¶ä¸­ç©ºé—²å¤–å­˜Inodeï¼Œè®°å…¥ç©ºé—²Inodeç´¢å¼•è¡¨ */
-		for(int i = 0; i < sb->s_isize; i++)
+		/* ÒÀ´Î¶ÁÈë´ÅÅÌInodeÇøÖĞµÄ´ÅÅÌ¿é£¬ËÑË÷ÆäÖĞ¿ÕÏĞÍâ´æInode£¬¼ÇÈë¿ÕÏĞInodeË÷Òı±í */
+		for (int i = 0; i < sb->s_isize; i++)
 		{
-			pBuf = this->m_BufferManager->Bread(FileSystem::INODE_ZONE_START_SECTOR + i);
+			/* ¶ÁÈë´ÅÅÌInodeÇøÖĞµÄµÚi¸ö´ÅÅÌ¿é */
+			pBuf = this->m_BufferManager->Bread(dev, FileSystem::INODE_ZONE_START_SECTOR + i);
 
-			/* è·å–ç¼“å†²åŒºé¦–å€ */
-			int* p = (int *)pBuf->b_addr;
+			/* »ñÈ¡»º³åÇøÊ×Ö· */
+			int *p = (int *)pBuf->b_addr;
 
-			/* æ£€æŸ¥è¯¥ç¼“å†²åŒºä¸­æ¯ä¸ªå¤–å­˜Inodeçš„i_mode != 0ï¼Œè¡¨ç¤ºå·²ç»è¢«å ç”¨ */
-			for(int j = 0; j < FileSystem::INODE_NUMBER_PER_SECTOR; j++)
+			/* ¼ì²é¸Ã»º³åÇøÖĞÃ¿¸öÍâ´æInodeµÄi_mode != 0£¬±íÊ¾ÒÑ¾­±»Õ¼ÓÃ */
+			for (int j = 0; j < FileSystem::INODE_NUMBER_PER_SECTOR; j++)
 			{
+				/* Íâ´æInode±àºÅ¼Ó1 */
 				ino++;
 
-				int mode = *( p + j * sizeof(DiskInode)/sizeof(int) );
+				/* »ñÈ¡Íâ´æInodeµÄi_mode */
+				int mode = *(p + j * sizeof(DiskInode) / sizeof(int));
 
-				/* è¯¥å¤–å­˜Inodeå·²è¢«å ç”¨ï¼Œä¸èƒ½è®°å…¥ç©ºé—²Inodeç´¢å¼•è¡¨ */
-				if(mode != 0)
+				/* ¸ÃÍâ´æInodeÒÑ±»Õ¼ÓÃ£¬²»ÄÜ¼ÇÈë¿ÕÏĞInodeË÷Òı±í */
+				if (mode != 0)
 				{
 					continue;
 				}
 
-				/* 
-				 * å¦‚æœå¤–å­˜inodeçš„i_mode==0ï¼Œæ­¤æ—¶å¹¶ä¸èƒ½ç¡®å®š
-				 * è¯¥inodeæ˜¯ç©ºé—²çš„ï¼Œå› ä¸ºæœ‰å¯èƒ½æ˜¯å†…å­˜inodeæ²¡æœ‰å†™åˆ°
-				 * ç£ç›˜ä¸Š,æ‰€ä»¥è¦ç»§ç»­æœç´¢å†…å­˜inodeä¸­æ˜¯å¦æœ‰ç›¸åº”çš„é¡¹
+				/*
+				 * Èç¹ûÍâ´æinodeµÄi_mode==0£¬´ËÊ±²¢²»ÄÜÈ·¶¨
+				 * ¸ÃinodeÊÇ¿ÕÏĞµÄ£¬ÒòÎªÓĞ¿ÉÄÜÊÇÄÚ´æinodeÃ»ÓĞĞ´µ½
+				 * ´ÅÅÌÉÏ,ËùÒÔÒª¼ÌĞøËÑË÷ÄÚ´æinodeÖĞÊÇ·ñÓĞÏàÓ¦µÄÏî
 				 */
-				if( g_InodeTable.IsLoaded(ino) == -1 )
+				if (g_InodeTable.IsLoaded(dev, ino) == -1)
 				{
-					/* è¯¥å¤–å­˜Inodeæ²¡æœ‰å¯¹åº”çš„å†…å­˜æ‹·è´ï¼Œå°†å…¶è®°å…¥ç©ºé—²Inodeç´¢å¼•è¡¨ */
+					/* ¸ÃÍâ´æInodeÃ»ÓĞ¶ÔÓ¦µÄÄÚ´æ¿½±´£¬½«Æä¼ÇÈë¿ÕÏĞInodeË÷Òı±í */
 					sb->s_inode[sb->s_ninode++] = ino;
 
-					/* å¦‚æœç©ºé—²ç´¢å¼•è¡¨å·²ç»è£…æ»¡ï¼Œåˆ™ä¸ç»§ç»­æœç´¢ */
-					if(sb->s_ninode >= 100)
+					/* Èç¹û¿ÕÏĞË÷Òı±íÒÑ¾­×°Âú£¬Ôò²»¼ÌĞøËÑË÷ */
+					if (sb->s_ninode >= 100)
 					{
 						break;
 					}
 				}
 			}
 
-			/* è‡³æ­¤å·²è¯»å®Œå½“å‰ç£ç›˜å—ï¼Œé‡Šæ”¾ç›¸åº”çš„ç¼“å­˜ */
+			/* ÖÁ´ËÒÑ¶ÁÍêµ±Ç°´ÅÅÌ¿é£¬ÊÍ·ÅÏàÓ¦µÄ»º´æ */
 			this->m_BufferManager->Brelse(pBuf);
 
-			/* å¦‚æœç©ºé—²ç´¢å¼•è¡¨å·²ç»è£…æ»¡ï¼Œåˆ™ä¸ç»§ç»­æœç´¢ */
-			if(sb->s_ninode >= 100)
+			/* Èç¹û¿ÕÏĞË÷Òı±íÒÑ¾­×°Âú£¬Ôò²»¼ÌĞøËÑË÷ */
+			if (sb->s_ninode >= 100)
 			{
 				break;
 			}
 		}
-		/* è§£é™¤å¯¹ç©ºé—²å¤–å­˜Inodeç´¢å¼•è¡¨çš„é”ï¼Œå”¤é†’å› ä¸ºç­‰å¾…é”è€Œç¡çœ çš„è¿›ç¨‹ */
-		pthread_mutex_unlock(&sb->s_ilock);
-		// sb->s_ilock = 0;
-		// Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_ilock);
-		
-		/* å¦‚æœåœ¨ç£ç›˜ä¸Šæ²¡æœ‰æœç´¢åˆ°ä»»ä½•å¯ç”¨å¤–å­˜Inodeï¼Œè¿”å›NULL */
-		if(sb->s_ninode <= 0)
+		/* ½â³ı¶Ô¿ÕÏĞÍâ´æInodeË÷Òı±íµÄËø£¬»½ĞÑÒòÎªµÈ´ıËø¶øË¯ÃßµÄ½ø³Ì */
+		sb->s_ilock = 0;
+		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_ilock);
+
+		/* Èç¹ûÔÚ´ÅÅÌÉÏÃ»ÓĞËÑË÷µ½ÈÎºÎ¿ÉÓÃÍâ´æInode£¬·µ»ØNULL */
+		if (sb->s_ninode <= 0)
 		{
-			printf("[error] cannot find aviliable free diskInode\n");
-			u.u_error = ENOSPC;
+			Diagnose::Write("No Space On %d !\n", dev);
+			u.u_error = User::ENOSPC; /* ÉèÖÃ´íÎóºÅ */
 			return NULL;
 		}
 	}
 
-	/* 
-	 * ä¸Šé¢éƒ¨åˆ†å·²ç»ä¿è¯ï¼Œé™¤éç³»ç»Ÿä¸­æ²¡æœ‰å¯ç”¨å¤–å­˜Inodeï¼Œ
-	 * å¦åˆ™ç©ºé—²Inodeç´¢å¼•è¡¨ä¸­å¿…å®šä¼šè®°å½•å¯ç”¨å¤–å­˜Inodeçš„ç¼–å·ã€‚
+	/*
+	 * ÉÏÃæ²¿·ÖÒÑ¾­±£Ö¤£¬³ı·ÇÏµÍ³ÖĞÃ»ÓĞ¿ÉÓÃÍâ´æInode£¬
+	 * ·ñÔò¿ÕÏĞInodeË÷Òı±íÖĞ±Ø¶¨»á¼ÇÂ¼¿ÉÓÃÍâ´æInodeµÄ±àºÅ¡£
 	 */
-	while(true)
+	while (true)
 	{
-		/* ä»ç´¢å¼•è¡¨â€œæ ˆé¡¶â€è·å–ç©ºé—²å¤–å­˜Inodeç¼–å· */
+		/* ´ÓË÷Òı±í¡°Õ»¶¥¡±»ñÈ¡¿ÕÏĞÍâ´æInode±àºÅ */
 		ino = sb->s_inode[--sb->s_ninode];
 
-		/* å°†ç©ºé—²Inodeè¯»å…¥å†…å­˜ */
-		pNode = g_InodeTable.IGet(ino);
-		/* æœªèƒ½åˆ†é…åˆ°å†…å­˜inode */
-		if(NULL == pNode)
+		/* ½«¿ÕÏĞInode¶ÁÈëÄÚ´æ */
+		pNode = g_InodeTable.IGet(dev, ino);
+		/* Î´ÄÜ·ÖÅäµ½ÄÚ´æinode */
+		if (NULL == pNode)
 		{
 			return NULL;
 		}
 
-		/* å¦‚æœè¯¥Inodeç©ºé—²,æ¸…ç©ºInodeä¸­çš„æ•°æ® */
-		if(0 == pNode->i_mode)
+		/* Èç¹û¸ÃInode¿ÕÏĞ,Çå¿ÕInodeÖĞµÄÊı¾İ */
+		if (0 == pNode->i_mode)
 		{
 			pNode->Clean();
-			/* è®¾ç½®SuperBlockè¢«ä¿®æ”¹æ ‡å¿— */
+			/* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 			sb->s_fmod = 1;
 			return pNode;
 		}
-		else	/* å¦‚æœè¯¥Inodeå·²è¢«å ç”¨ */
+		else /* Èç¹û¸ÃInodeÒÑ±»Õ¼ÓÃ */
 		{
 			g_InodeTable.IPut(pNode);
-			continue;	/* whileå¾ªç¯ */
+			continue; /* whileÑ­»· */
 		}
 	}
-	return NULL;	/* GCC likes it! */
+	return NULL; /* GCC likes it! */
 }
 
-/*
- * @comment  é‡Šæ”¾å­˜å‚¨è®¾å¤‡devä¸Šç¼–å·ä¸ºnumber
- * çš„å¤–å­˜INodeï¼Œä¸€èˆ¬ç”¨äºåˆ é™¤æ–‡ä»¶ã€‚
- */
-void FileSystem::IFree(int number)
+/* ±¾º¯ÊıÓÃÒÔÊÍ·ÅÍâ´æInode */
+void FileSystem::IFree(short dev, int number)
 {
-	SuperBlock* sb;
+	SuperBlock *sb; /* ³¬¼¶¿éÄÚ´æ¸±±¾ */
 
-	sb = this->GetFS();	/* è·å–ç›¸åº”è®¾å¤‡çš„SuperBlockå†…å­˜å‰¯æœ¬ */
-	
-	/* 
-	 * å¦‚æœè¶…çº§å—ç›´æ¥ç®¡ç†çš„ç©ºé—²Inodeè¡¨ä¸Šé”ï¼Œ
-	 * åˆ™é‡Šæ”¾çš„å¤–å­˜Inodeæ•£è½åœ¨ç£ç›˜InodeåŒºä¸­ã€‚
-	 */
-	// if(sb->s_ilock)
-	// {
-	// 	return;
-	// }
+	sb = this->GetFS(dev); /* »ñÈ¡ÏàÓ¦Éè±¸µÄSuperBlockÄÚ´æ¸±±¾ */
 
-	/* 
-	 * å¦‚æœè¶…çº§å—ç›´æ¥ç®¡ç†çš„ç©ºé—²å¤–å­˜Inodeè¶…è¿‡100ä¸ªï¼Œ
-	 * åŒæ ·è®©é‡Šæ”¾çš„å¤–å­˜Inodeæ•£è½åœ¨ç£ç›˜InodeåŒºä¸­ã€‚
+	/*
+	 * Èç¹û³¬¼¶¿éÖ±½Ó¹ÜÀíµÄ¿ÕÏĞInode±íÉÏËø£¬
+	 * ÔòÊÍ·ÅµÄÍâ´æInodeÉ¢ÂäÔÚ´ÅÅÌInodeÇøÖĞ¡£
 	 */
-	if(sb->s_ninode >= 100)
+	if (sb->s_ilock)
 	{
+		/* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 		return;
 	}
 
+	/*
+	 * Èç¹û³¬¼¶¿éÖ±½Ó¹ÜÀíµÄ¿ÕÏĞÍâ´æInode³¬¹ı100¸ö£¬
+	 * Í¬ÑùÈÃÊÍ·ÅµÄÍâ´æInodeÉ¢ÂäÔÚ´ÅÅÌInodeÇøÖĞ¡£
+	 */
+	if (sb->s_ninode >= 100)
+	{
+		/* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
+		return;
+	}
+
+	/* ½«ÊÍ·ÅµÄÍâ´æInode±àºÅ¼ÇÂ¼µ½¿ÕÏĞInodeË÷Òı±íÖĞ */
 	sb->s_inode[sb->s_ninode++] = number;
 
-	/* è®¾ç½®SuperBlockè¢«ä¿®æ”¹æ ‡å¿— */
+	/* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 	sb->s_fmod = 1;
 }
 
-/*
- * @comment åœ¨å­˜å‚¨è®¾å¤‡devä¸Šåˆ†é…ç©ºé—²ç£ç›˜å—
- */
-Buf* FileSystem::Alloc()
+/* ±¾º¯ÊıÓÃÒÔÔÚ´æ´¢Éè±¸devÉÏ·ÖÅä¿ÕÏĞ´ÅÅÌ¿é */
+Buf *FileSystem::Alloc(short dev)
 {
-	int blkno;	/* åˆ†é…åˆ°çš„ç©ºé—²ç£ç›˜å—ç¼–å· */
-	SuperBlock* sb;
-	Buf* pBuf;
-	User& u = SecondFileKernel::Instance().GetUser();
-	//pthread_mutex_t p_mutex;
-	//pthread_mutex_init(&p_mutex, NULL);
-	/* è·å–SuperBlockå¯¹è±¡çš„å†…å­˜å‰¯æœ¬ */
-	sb = this->GetFS();
+	int blkno;								/* ·ÖÅäµ½µÄ¿ÕÏĞ´ÅÅÌ¿é±àºÅ */
+	SuperBlock *sb;							/* ³¬¼¶¿éÄÚ´æ¸±±¾ */
+	Buf *pBuf;								/* »º³åÇøÖ¸Õë */
+	User &u = Kernel::Instance().GetUser(); /* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
 
-	/* 
-	 * å¦‚æœç©ºé—²ç£ç›˜å—ç´¢å¼•è¡¨æ­£åœ¨è¢«ä¸Šé”ï¼Œè¡¨æ˜æœ‰å…¶å®ƒè¿›ç¨‹
-	 * æ­£åœ¨æ“ä½œç©ºé—²ç£ç›˜å—ç´¢å¼•è¡¨ï¼Œå› è€Œå¯¹å…¶ä¸Šé”ã€‚è¿™é€šå¸¸
-	 * æ˜¯ç”±äºå…¶ä½™è¿›ç¨‹è°ƒç”¨Free()æˆ–Alloc()é€ æˆçš„ã€‚
+	/* »ñÈ¡SuperBlock¶ÔÏóµÄÄÚ´æ¸±±¾ */
+	sb = this->GetFS(dev);
+
+	/*
+	 * Èç¹û¿ÕÏĞ´ÅÅÌ¿éË÷Òı±íÕıÔÚ±»ÉÏËø£¬±íÃ÷ÓĞÆäËü½ø³Ì
+	 * ÕıÔÚ²Ù×÷¿ÕÏĞ´ÅÅÌ¿éË÷Òı±í£¬Òò¶ø¶ÔÆäÉÏËø¡£ÕâÍ¨³£
+	 * ÊÇÓÉÓÚÆäÓà½ø³Ìµ÷ÓÃFree()»òAlloc()Ôì³ÉµÄ¡£
 	 */
-	//pthread_mutex_lock(&p_mutex);
-	pthread_mutex_lock(&sb->s_flock);//s_mfree--çš„å†™æ“ä½œéœ€è¦ä¿æŠ¤
-	cout << "[Alloc] sb->s_flockä¸Šé”" <<endl;
-	// while(sb->s_flock)
-	// {
-	// 	/* è¿›å…¥ç¡çœ ç›´åˆ°è·å¾—è¯¥é”æ‰ç»§ç»­ */
-	// 	u.u_procp->Sleep((unsigned long)&sb->s_flock, ProcessManager::PINOD);
-	// }
+	while (sb->s_flock)
+	{
+		/* ½øÈëË¯ÃßÖ±µ½»ñµÃ¸ÃËø²Å¼ÌĞø */
+		u.u_procp->Sleep((unsigned long)&sb->s_flock, ProcessManager::PINOD);
+	}
 
-	/* ä»ç´¢å¼•è¡¨â€œæ ˆé¡¶â€è·å–ç©ºé—²ç£ç›˜å—ç¼–å· */
+	/* ´ÓË÷Òı±í¡°Õ»¶¥¡±»ñÈ¡¿ÕÏĞ´ÅÅÌ¿é±àºÅ */
 	blkno = sb->s_free[--sb->s_nfree];
 
-	/* 
-	 * è‹¥è·å–ç£ç›˜å—ç¼–å·ä¸ºé›¶ï¼Œåˆ™è¡¨ç¤ºå·²åˆ†é…å°½æ‰€æœ‰çš„ç©ºé—²ç£ç›˜å—ã€‚
-	 * æˆ–è€…åˆ†é…åˆ°çš„ç©ºé—²ç£ç›˜å—ç¼–å·ä¸å±äºæ•°æ®ç›˜å—åŒºåŸŸä¸­(ç”±BadBlock()æ£€æŸ¥)ï¼Œ
-	 * éƒ½æ„å‘³ç€åˆ†é…ç©ºé—²ç£ç›˜å—æ“ä½œå¤±è´¥ã€‚
+	/*
+	 * Èô»ñÈ¡´ÅÅÌ¿é±àºÅÎªÁã£¬Ôò±íÊ¾ÒÑ·ÖÅä¾¡ËùÓĞµÄ¿ÕÏĞ´ÅÅÌ¿é¡£
+	 * »òÕß·ÖÅäµ½µÄ¿ÕÏĞ´ÅÅÌ¿é±àºÅ²»ÊôÓÚÊı¾İÅÌ¿éÇøÓòÖĞ(ÓÉBadBlock()¼ì²é)£¬
+	 * ¶¼ÒâÎ¶×Å·ÖÅä¿ÕÏĞ´ÅÅÌ¿é²Ù×÷Ê§°Ü¡£
 	 */
-	if(0 == blkno )
+	if (0 == blkno)
 	{
-		sb->s_nfree = 0;
-		printf("[error] No Space on device\n");
-		//Diagnose::Write("No Space On %d !\n", dev);
-		u.u_error = ENOSPC;
-		return NULL;
+		sb->s_nfree = 0;							/* ¿ÕÏĞ´ÅÅÌ¿éË÷Òı±íÖĞÃ»ÓĞ¿ÕÏĞ´ÅÅÌ¿é±àºÅ */
+		Diagnose::Write("No Space On %d !\n", dev); /* ´òÓ¡´íÎóĞÅÏ¢ */
+		u.u_error = User::ENOSPC;					/* ÉèÖÃ´íÎóºÅ */
+		return NULL;								/* ·µ»ØNULL */
 	}
-	if( this->BadBlock(sb, blkno) )
+	if (this->BadBlock(sb, dev, blkno))
 	{
-		printf("[error] BadBlock, Alloc Failed\n");
+		/* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 		return NULL;
 	}
 
-	/* 
-	 * æ ˆå·²ç©ºï¼Œæ–°åˆ†é…åˆ°ç©ºé—²ç£ç›˜å—ä¸­è®°å½•äº†ä¸‹ä¸€ç»„ç©ºé—²ç£ç›˜å—çš„ç¼–å·,
-	 * å°†ä¸‹ä¸€ç»„ç©ºé—²ç£ç›˜å—çš„ç¼–å·è¯»å…¥SuperBlockçš„ç©ºé—²ç£ç›˜å—ç´¢å¼•è¡¨s_free[100]ä¸­ã€‚
+	/*
+	 * Õ»ÒÑ¿Õ£¬ĞÂ·ÖÅäµ½¿ÕÏĞ´ÅÅÌ¿éÖĞ¼ÇÂ¼ÁËÏÂÒ»×é¿ÕÏĞ´ÅÅÌ¿éµÄ±àºÅ,
+	 * ½«ÏÂÒ»×é¿ÕÏĞ´ÅÅÌ¿éµÄ±àºÅ¶ÁÈëSuperBlockµÄ¿ÕÏĞ´ÅÅÌ¿éË÷Òı±ís_free[100]ÖĞ¡£
 	 */
-	if(sb->s_nfree <= 0)
+	if (sb->s_nfree <= 0)
 	{
-		/* 
-		 * æ­¤å¤„åŠ é”ï¼Œå› ä¸ºä»¥ä¸‹è¦è¿›è¡Œè¯»ç›˜æ“ä½œï¼Œæœ‰å¯èƒ½å‘ç”Ÿè¿›ç¨‹åˆ‡æ¢ï¼Œ
-		 * æ–°ä¸Šå°çš„è¿›ç¨‹å¯èƒ½å¯¹SuperBlockçš„ç©ºé—²ç›˜å—ç´¢å¼•è¡¨è®¿é—®ï¼Œä¼šå¯¼è‡´ä¸ä¸€è‡´æ€§ã€‚
+		/*
+		 * ´Ë´¦¼ÓËø£¬ÒòÎªÒÔÏÂÒª½øĞĞ¶ÁÅÌ²Ù×÷£¬ÓĞ¿ÉÄÜ·¢Éú½ø³ÌÇĞ»»£¬
+		 * ĞÂÉÏÌ¨µÄ½ø³Ì¿ÉÄÜ¶ÔSuperBlockµÄ¿ÕÏĞÅÌ¿éË÷Òı±í·ÃÎÊ£¬»áµ¼ÖÂ²»Ò»ÖÂĞÔ¡£
 		 */
-		//sb->s_flock++;
+		sb->s_flock++;
 
-		/* è¯»å…¥è¯¥ç©ºé—²ç£ç›˜å— */
-		pBuf = this->m_BufferManager->Bread(blkno);
+		/* ¶ÁÈë¸Ã¿ÕÏĞ´ÅÅÌ¿é */
+		pBuf = this->m_BufferManager->Bread(dev, blkno);
 
-		/* ä»è¯¥ç£ç›˜å—çš„0å­—èŠ‚å¼€å§‹è®°å½•ï¼Œå…±å æ®4(s_nfree)+400(s_free[100])ä¸ªå­—èŠ‚ */
-		int* p = (int *)pBuf->b_addr;
+		/* ´Ó¸Ã´ÅÅÌ¿éµÄ0×Ö½Ú¿ªÊ¼¼ÇÂ¼£¬¹²Õ¼¾İ4(s_nfree)+400(s_free[100])¸ö×Ö½Ú */
+		int *p = (int *)pBuf->b_addr;
 
-		/* é¦–å…ˆè¯»å‡ºç©ºé—²ç›˜å—æ•°s_nfree */
+		/* Ê×ÏÈ¶Á³ö¿ÕÏĞÅÌ¿éÊıs_nfree */
 		sb->s_nfree = *p++;
 
-		/* è¯»å–ç¼“å­˜ä¸­åç»­ä½ç½®çš„æ•°æ®ï¼Œå†™å…¥åˆ°SuperBlockç©ºé—²ç›˜å—ç´¢å¼•è¡¨s_free[100]ä¸­ */
-		memcpy(sb->s_free, p, 400);
+		/* ¶ÁÈ¡»º´æÖĞºóĞøÎ»ÖÃµÄÊı¾İ£¬Ğ´Èëµ½SuperBlock¿ÕÏĞÅÌ¿éË÷Òı±ís_free[100]ÖĞ */
+		Utility::DWordCopy(p, sb->s_free, 100);
 
-		/* ç¼“å­˜ä½¿ç”¨å®Œæ¯•ï¼Œé‡Šæ”¾ä»¥ä¾¿è¢«å…¶å®ƒè¿›ç¨‹ä½¿ç”¨ */
+		/* »º´æÊ¹ÓÃÍê±Ï£¬ÊÍ·ÅÒÔ±ã±»ÆäËü½ø³ÌÊ¹ÓÃ */
 		this->m_BufferManager->Brelse(pBuf);
 
-		/* è§£é™¤å¯¹ç©ºé—²ç£ç›˜å—ç´¢å¼•è¡¨çš„é”ï¼Œå”¤é†’å› ä¸ºç­‰å¾…é”è€Œç¡çœ çš„è¿›ç¨‹ */
-		// sb->s_flock = 0;
+		/* ½â³ı¶Ô¿ÕÏĞ´ÅÅÌ¿éË÷Òı±íµÄËø£¬»½ĞÑÒòÎªµÈ´ıËø¶øË¯ÃßµÄ½ø³Ì */
+		sb->s_flock = 0;
+		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_flock);
 	}
-	pthread_mutex_unlock(&sb->s_flock);
-	cout << "[Alloc] sb->s_flockè§£é”!" << endl;
-	/* æ™®é€šæƒ…å†µä¸‹æˆåŠŸåˆ†é…åˆ°ä¸€ç©ºé—²ç£ç›˜å— */
-	pBuf = this->m_BufferManager->GetBlk(blkno);	/* ä¸ºè¯¥ç£ç›˜å—ç”³è¯·ç¼“å­˜ */
-	this->m_BufferManager->ClrBuf(pBuf);	/* æ¸…ç©ºç¼“å­˜ä¸­çš„æ•°æ® */
-	sb->s_fmod = 1;	/* è®¾ç½®SuperBlockè¢«ä¿®æ”¹æ ‡å¿— */
+
+	/* ÆÕÍ¨Çé¿öÏÂ³É¹¦·ÖÅäµ½Ò»¿ÕÏĞ´ÅÅÌ¿é */
+	pBuf = this->m_BufferManager->GetBlk(dev, blkno); /* Îª¸Ã´ÅÅÌ¿éÉêÇë»º´æ */
+	this->m_BufferManager->ClrBuf(pBuf);			  /* Çå¿Õ»º´æÖĞµÄÊı¾İ */
+	sb->s_fmod = 1;									  /* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 
 	return pBuf;
 }
 
-/*
- * @comment é‡Šæ”¾å­˜å‚¨è®¾å¤‡devä¸Šç¼–å·ä¸ºblknoçš„ç£ç›˜å—
- */
-void FileSystem::Free(int blkno)
+/* ±¾º¯ÊıÓÃÒÔÊÍ·Å´æ´¢Éè±¸devÉÏµÄ´ÅÅÌ¿éblkno */
+void FileSystem::Free(short dev, int blkno)
 {
-	SuperBlock* sb;
-	Buf* pBuf;
-	//User& u = SecondFileKernel::Instance().GetUser();
+	SuperBlock *sb;							/* ³¬¼¶¿éÄÚ´æ¸±±¾ */
+	Buf *pBuf;								/* »º³åÇøÖ¸Õë */
+	User &u = Kernel::Instance().GetUser(); /* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
 
-	sb = this->GetFS();
-	sb->s_fmod = 1;
-	/* 
-	 * å°½æ—©è®¾ç½®SuperBlockè¢«ä¿®æ”¹æ ‡å¿—ï¼Œä»¥é˜²æ­¢åœ¨é‡Šæ”¾
-	 * ç£ç›˜å—Free()æ‰§è¡Œè¿‡ç¨‹ä¸­ï¼Œå¯¹SuperBlockå†…å­˜å‰¯æœ¬
-	 * çš„ä¿®æ”¹ä»…è¿›è¡Œäº†ä¸€åŠï¼Œå°±æ›´æ–°åˆ°ç£ç›˜SuperBlockå»
+	sb = this->GetFS(dev); /* »ñÈ¡SuperBlock¶ÔÏóµÄÄÚ´æ¸±±¾ */
+
+	/*
+	 * ¾¡ÔçÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾£¬ÒÔ·ÀÖ¹ÔÚÊÍ·Å
+	 * ´ÅÅÌ¿éFree()Ö´ĞĞ¹ı³ÌÖĞ£¬¶ÔSuperBlockÄÚ´æ¸±±¾
+	 * µÄĞŞ¸Ä½ö½øĞĞÁËÒ»°ë£¬¾Í¸üĞÂµ½´ÅÅÌSuperBlockÈ¥
 	 */
-	pthread_mutex_lock(&sb->s_flock);
-	cout << "[Free] sb->s_flockä¸Šé”" <<endl;
-	/* å¦‚æœç©ºé—²ç£ç›˜å—ç´¢å¼•è¡¨è¢«ä¸Šé”ï¼Œåˆ™ç¡çœ ç­‰å¾…è§£é” */
-	// while(sb->s_flock)
-	// {
-	// 	u.u_procp->Sleep((unsigned long)&sb->s_flock, ProcessManager::PINOD);
-	// }
+	sb->s_fmod = 1;
 
-	/* æ£€æŸ¥é‡Šæ”¾ç£ç›˜å—çš„åˆæ³•æ€§ */
-	if(this->BadBlock(sb, blkno))
+	/* Èç¹û¿ÕÏĞ´ÅÅÌ¿éË÷Òı±í±»ÉÏËø£¬ÔòË¯ÃßµÈ´ı½âËø */
+	while (sb->s_flock)
+	{
+		/* ½øÈëË¯ÃßÖ±µ½»ñµÃ¸ÃËø²Å¼ÌĞø */
+		u.u_procp->Sleep((unsigned long)&sb->s_flock, ProcessManager::PINOD);
+	}
+
+	/* ¼ì²éÊÍ·Å´ÅÅÌ¿éµÄºÏ·¨ĞÔ */
+	if (this->BadBlock(sb, dev, blkno))
 	{
 		return;
 	}
 
-	/* 
-	 * å¦‚æœå…ˆå‰ç³»ç»Ÿä¸­å·²ç»æ²¡æœ‰ç©ºé—²ç›˜å—ï¼Œ
-	 * ç°åœ¨é‡Šæ”¾çš„æ˜¯ç³»ç»Ÿä¸­ç¬¬1å—ç©ºé—²ç›˜å—
+	/*
+	 * Èç¹ûÏÈÇ°ÏµÍ³ÖĞÒÑ¾­Ã»ÓĞ¿ÕÏĞÅÌ¿é£¬
+	 * ÏÖÔÚÊÍ·ÅµÄÊÇÏµÍ³ÖĞµÚ1¿é¿ÕÏĞÅÌ¿é
 	 */
-	if(sb->s_nfree <= 0)
+	if (sb->s_nfree <= 0)
 	{
 		sb->s_nfree = 1;
-		sb->s_free[0] = 0;	/* ä½¿ç”¨0æ ‡è®°ç©ºé—²ç›˜å—é“¾ç»“æŸæ ‡å¿— */
+		sb->s_free[0] = 0; /* Ê¹ÓÃ0±ê¼Ç¿ÕÏĞÅÌ¿éÁ´½áÊø±êÖ¾ */
 	}
 
-	/* SuperBlockä¸­ç›´æ¥ç®¡ç†ç©ºé—²ç£ç›˜å—å·çš„æ ˆå·²æ»¡ */
-	if(sb->s_nfree >= 100)
+	/* SuperBlockÖĞÖ±½Ó¹ÜÀí¿ÕÏĞ´ÅÅÌ¿éºÅµÄÕ»ÒÑÂú */
+	if (sb->s_nfree >= 100)
 	{
-		//sb->s_flock++;
-
-		/* 
-		 * ä½¿ç”¨å½“å‰Free()å‡½æ•°æ­£è¦é‡Šæ”¾çš„ç£ç›˜å—ï¼Œå­˜æ”¾å‰ä¸€ç»„100ä¸ªç©ºé—²
-		 * ç£ç›˜å—çš„ç´¢å¼•è¡¨
+		/*
+		 * ´Ë´¦¼ÓËø£¬ÒòÎªÒÔÏÂÒª½øĞĞĞ´ÅÌ²Ù×÷£¬ÓĞ¿ÉÄÜ·¢Éú½ø³ÌÇĞ»»£¬
+		 * ĞÂÉÏÌ¨µÄ½ø³Ì¿ÉÄÜ¶ÔSuperBlockµÄ¿ÕÏĞÅÌ¿éË÷Òı±í·ÃÎÊ£¬»áµ¼ÖÂ²»Ò»ÖÂĞÔ¡£
 		 */
-		pBuf = this->m_BufferManager->GetBlk(blkno);	/* ä¸ºå½“å‰æ­£è¦é‡Šæ”¾çš„ç£ç›˜å—åˆ†é…ç¼“å­˜ */
+		sb->s_flock++;
 
-		/* ä»è¯¥ç£ç›˜å—çš„0å­—èŠ‚å¼€å§‹è®°å½•ï¼Œå…±å æ®4(s_nfree)+400(s_free[100])ä¸ªå­—èŠ‚ */
-		int* p = (int *)pBuf->b_addr;
-		
-		/* é¦–å…ˆå†™å…¥ç©ºé—²ç›˜å—æ•°ï¼Œé™¤äº†ç¬¬ä¸€ç»„ä¸º99å—ï¼Œåç»­æ¯ç»„éƒ½æ˜¯100å— */
+		/*
+		 * Ê¹ÓÃµ±Ç°Free()º¯ÊıÕıÒªÊÍ·ÅµÄ´ÅÅÌ¿é£¬´æ·ÅÇ°Ò»×é100¸ö¿ÕÏĞ
+		 * ´ÅÅÌ¿éµÄË÷Òı±í
+		 */
+		pBuf = this->m_BufferManager->GetBlk(dev, blkno); /* Îªµ±Ç°ÕıÒªÊÍ·ÅµÄ´ÅÅÌ¿é·ÖÅä»º´æ */
+
+		/* ´Ó¸Ã´ÅÅÌ¿éµÄ0×Ö½Ú¿ªÊ¼¼ÇÂ¼£¬¹²Õ¼¾İ4(s_nfree)+400(s_free[100])¸ö×Ö½Ú */
+		int *p = (int *)pBuf->b_addr;
+
+		/* Ê×ÏÈĞ´Èë¿ÕÏĞÅÌ¿éÊı£¬³ıÁËµÚÒ»×éÎª99¿é£¬ºóĞøÃ¿×é¶¼ÊÇ100¿é */
 		*p++ = sb->s_nfree;
-		/* å°†SuperBlockçš„ç©ºé—²ç›˜å—ç´¢å¼•è¡¨s_free[100]å†™å…¥ç¼“å­˜ä¸­åç»­ä½ç½® */
-		memcpy(p, sb->s_free, 400);
+		/* ½«SuperBlockµÄ¿ÕÏĞÅÌ¿éË÷Òı±ís_free[100]Ğ´Èë»º´æÖĞºóĞøÎ»ÖÃ */
+		Utility::DWordCopy(sb->s_free, p, 100);
 
 		sb->s_nfree = 0;
-		/* å°†å­˜æ”¾ç©ºé—²ç›˜å—ç´¢å¼•è¡¨çš„â€œå½“å‰é‡Šæ”¾ç›˜å—â€å†™å…¥ç£ç›˜ï¼Œå³å®ç°äº†ç©ºé—²ç›˜å—è®°å½•ç©ºé—²ç›˜å—å·çš„ç›®æ ‡ */
+		/* ½«´æ·Å¿ÕÏĞÅÌ¿éË÷Òı±íµÄ¡°µ±Ç°ÊÍ·ÅÅÌ¿é¡±Ğ´Èë´ÅÅÌ£¬¼´ÊµÏÖÁË¿ÕÏĞÅÌ¿é¼ÇÂ¼¿ÕÏĞÅÌ¿éºÅµÄÄ¿±ê */
 		this->m_BufferManager->Bwrite(pBuf);
-		// è§£é”
-		// sb->s_flock = 0;
+		/* ½â³ı¶Ô¿ÕÏĞ´ÅÅÌ¿éË÷Òı±íµÄËø*/
+		sb->s_flock = 0;
+		/* »½ĞÑÒòÎªµÈ´ıËø¶øË¯ÃßµÄ½ø³Ì */
+		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_flock);
 	}
-	sb->s_free[sb->s_nfree++] = blkno;	/* SuperBlockä¸­è®°å½•ä¸‹å½“å‰é‡Šæ”¾ç›˜å—å· */
-	sb->s_fmod = 1;
-	pthread_mutex_unlock(&sb->s_flock);
-	cout << "[Free] sb->s_flockè§£é”!" << endl;
+	sb->s_free[sb->s_nfree++] = blkno; /* SuperBlockÖĞ¼ÇÂ¼ÏÂµ±Ç°ÊÍ·ÅÅÌ¿éºÅ */
+	sb->s_fmod = 1;					   /* ÉèÖÃSuperBlock±»ĞŞ¸Ä±êÖ¾ */
 }
 
-// ???????? è¿™æ˜¯åœ¨å¹²å˜›
-bool FileSystem::BadBlock(SuperBlock *spb, int blkno)
+/*±¾º¯Êı²éÕÒÎÄ¼şÏµÍ³×°Åä±í£¬ËÑË÷Ö¸¶¨Inode¶ÔÓ¦µÄMount×°Åä¿é*/
+Mount *FileSystem::GetMount(Inode *pInode)
+{
+	/* ±éÀúÏµÍ³µÄ×°Åä¿é±í */
+	for (int i = 0; i <= FileSystem::NMOUNT; i++)
+	{
+		/* »ñÈ¡µ±Ç°×°Åä¿é */
+		Mount *pMount = &(this->m_Mount[i]);
+
+		/* ÕÒµ½ÄÚ´æInode¶ÔÓ¦µÄMount×°Åä¿é */
+		if (pMount->m_inodep == pInode)
+		{
+			/* ·µ»Ø¸Ã×°Åä¿é */
+			return pMount;
+		}
+	}
+	return NULL; /* ²éÕÒÊ§°Ü */
+}
+
+/*¼ì²éÉè±¸devÉÏ±àºÅblknoµÄ´ÅÅÌ¿éÊÇ·ñÊôÓÚÊı¾İÅÌ¿éÇø*/
+bool FileSystem::BadBlock(SuperBlock *spb, short dev, int blkno)
 {
 	return 0;
 }
