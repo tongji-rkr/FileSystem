@@ -1,41 +1,39 @@
-/*
- * @Description: this file defines the class Inode
- * @Date: 2022-09-05 14:30:16
- * @LastEditTime: 2023-04-02 15:56:26
- */
 #include "INode.h"
-#include "Utility.h"
-#include "DeviceManager.h"
 #include "Kernel.h"
+#include "User.h"
+#include <algorithm>
+#include <string.h>
+#include <iostream>
+using namespace std;
 
 /*==============================class Inode===================================*/
-/*	Ô¤¶Á¿éµÄ¿éºÅ£¬¶ÔÆÕÍ¨ÎÄ¼şÕâÊÇÔ¤¶Á¿éËùÔÚµÄÎïÀí¿éºÅ¡£¶ÔÓ²ÅÌ¶øÑÔ£¬ÕâÊÇµ±Ç°ÎïÀí¿é£¨ÉÈÇø£©µÄÏÂÒ»¸öÎïÀí¿é£¨ÉÈÇø£©*/
+/*	é¢„è¯»å—çš„å—å·ï¼Œå¯¹æ™®é€šæ–‡ä»¶è¿™æ˜¯é¢„è¯»å—æ‰€åœ¨çš„ç‰©ç†å—å·ã€‚å¯¹ç¡¬ç›˜è€Œè¨€ï¼Œè¿™æ˜¯å½“å‰ç‰©ç†å—ï¼ˆæ‰‡åŒºï¼‰çš„ä¸‹ä¸€ä¸ªç‰©ç†å—ï¼ˆæ‰‡åŒºï¼‰*/
 int Inode::rablock = 0;
 
-/* ÄÚ´æ´ò¿ª i½Úµã*/
+/* å†…å­˜æ‰“å¼€ ièŠ‚ç‚¹*/
 Inode::Inode()
 {
-	/* Çå¿ÕInode¶ÔÏóÖĞµÄÊı¾İ */
-	// this->Clean();
-	/* È¥³ıthis->Clean();µÄÀíÓÉ£º
-	 * Inode::Clean()ÌØ¶¨ÓÃÓÚIAlloc()ÖĞÇå¿ÕĞÂ·ÖÅäDiskInodeµÄÔ­ÓĞÊı¾İ£¬
-	 * ¼´¾ÉÎÄ¼şĞÅÏ¢¡£Clean()º¯ÊıÖĞ²»Ó¦µ±Çå³ıi_dev, i_number, i_flag, i_count,
-	 * ÕâÊÇÊôÓÚÄÚ´æInode¶ø·ÇDiskInode°üº¬µÄ¾ÉÎÄ¼şĞÅÏ¢£¬¶øInodeÀà¹¹Ôìº¯ÊıĞèÒª
-	 * ½«Æä³õÊ¼»¯ÎªÎŞĞ§Öµ¡£
+	/* æ¸…ç©ºInodeå¯¹è±¡ä¸­çš„æ•°æ® */
+	// this->Clean(); 
+	/* å»é™¤this->Clean();çš„ç†ç”±ï¼š
+	 * Inode::Clean()ç‰¹å®šç”¨äºIAlloc()ä¸­æ¸…ç©ºæ–°åˆ†é…DiskInodeçš„åŸæœ‰æ•°æ®ï¼Œ
+	 * å³æ—§æ–‡ä»¶ä¿¡æ¯ã€‚Clean()å‡½æ•°ä¸­ä¸åº”å½“æ¸…é™¤i_dev, i_number, i_flag, i_count,
+	 * è¿™æ˜¯å±äºå†…å­˜Inodeè€ŒéDiskInodeåŒ…å«çš„æ—§æ–‡ä»¶ä¿¡æ¯ï¼Œè€ŒInodeç±»æ„é€ å‡½æ•°éœ€è¦
+	 * å°†å…¶åˆå§‹åŒ–ä¸ºæ— æ•ˆå€¼ã€‚
 	 */
-
-	/* ½«Inode¶ÔÏóµÄ³ÉÔ±±äÁ¿³õÊ¼»¯ÎªÎŞĞ§Öµ */
-	this->i_flag = 0;			 /* ÎŞĞ§»¯±êÖ¾ */
-	this->i_mode = 0;			 /* ÎŞĞ§»¯ÎÄ¼ş¹¤×÷·½Ê½ĞÅÏ¢ */
-	this->i_count = 0;			 /* ÎŞĞ§»¯ÒıÓÃ¼ÆÊı */
-	this->i_nlink = 0;			 /* ÎŞĞ§»¯Á´½ÓÊı */
-	this->i_dev = -1;			 /* ÎŞĞ§»¯Éè±¸ºÅ */
-	this->i_number = -1;		 /* ÎŞĞ§»¯i½ÚµãºÅ */
-	this->i_uid = -1;			 /* ÎŞĞ§»¯ÓÃ»§ID */
-	this->i_gid = -1;			 /* ÎŞĞ§»¯×éID */
-	this->i_size = 0;			 /* ÎŞĞ§»¯ÎÄ¼ş´óĞ¡ */
-	this->i_lastr = -1;			 /* ÎŞĞ§»¯×îºó¶ÁÈ¡µÄÎïÀí¿éºÅ */
-	for (int i = 0; i < 10; i++) /* ÎŞĞ§»¯ÎïÀí¿éË÷Òı±í */
+	
+	/* å°†Inodeå¯¹è±¡çš„æˆå‘˜å˜é‡åˆå§‹åŒ–ä¸ºæ— æ•ˆå€¼ */
+	this->i_flag = 0;
+	this->i_mode = 0;
+	this->i_count = 0;
+	this->i_nlink = 0;
+	//this->i_dev = -1;
+	this->i_number = -1;
+	this->i_uid = -1;
+	this->i_gid = -1;
+	this->i_size = 0;
+	this->i_lastr = -1;
+	for(int i = 0; i < 10; i++)
 	{
 		this->i_addr[i] = 0;
 	}
@@ -43,756 +41,539 @@ Inode::Inode()
 
 Inode::~Inode()
 {
-	// nothing to do here
+	//nothing to do here
 }
 
-/* ±¾º¯ÊıÓÃÓÚ¸ù¾İInode¶ÔÏóÖĞµÄÎïÀí´ÅÅÌ¿éË÷Òı±í£¬¶ÁÈ¡ÏàÓ¦ÎÄ¼şÊı¾İ */
 void Inode::ReadI()
 {
-	int lbn;													   /* ÎÄ¼şÂß¼­¿éºÅ */
-	int bn;														   /* lbn¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ */
-	int offset;													   /* µ±Ç°×Ö·û¿éÄÚÆğÊ¼´«ËÍÎ»ÖÃ */
-	int nbytes;													   /* ´«ËÍÖÁÓÃ»§Ä¿±êÇø×Ö½ÚÊıÁ¿ */
-	short dev;													   /* Éè±¸ºÅ */
-	Buf *pBuf;													   /* »º³åÇøÖ¸Õë */
-	User &u = Kernel::Instance().GetUser();						   /* »ñÈ¡µ±Ç°ÓÃ»§User½á¹¹ */
-	BufferManager &bufMgr = Kernel::Instance().GetBufferManager(); /* »ñÈ¡»º³åÇø¹ÜÀíÆ÷ */
-	DeviceManager &devMgr = Kernel::Instance().GetDeviceManager(); /* »ñÈ¡Éè±¸¹ÜÀíÆ÷ */
-
-	if (0 == u.u_IOParam.m_Count)
+	int lbn;	/* æ–‡ä»¶é€»è¾‘å—å· */
+	int bn;		/* lbnå¯¹åº”çš„ç‰©ç†ç›˜å—å· */
+	int offset;	/* å½“å‰å­—ç¬¦å—å†…èµ·å§‹ä¼ é€ä½ç½® */
+	int nbytes;	/* ä¼ é€è‡³ç”¨æˆ·ç›®æ ‡åŒºå­—èŠ‚æ•°é‡ */
+	//short dev;
+	Buf* pBuf;
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
+	if( 0 == u.u_IOParam.m_Count )
 	{
-		/* ĞèÒª¶Á×Ö½ÚÊıÎªÁã£¬Ôò·µ»Ø */
+		/* éœ€è¦è¯»å­—èŠ‚æ•°ä¸ºé›¶ï¼Œåˆ™è¿”å› */
 		return;
 	}
-
-	this->i_flag |= Inode::IACC; /* ÉèÖÃ·ÃÎÊ±êÖ¾£¬Ğ´»ØÊ±ĞèÒªĞŞ¸Ä·ÃÎÊÊ±¼ä */
-
-	/* Èç¹ûÊÇ×Ö·ûÉè±¸ÎÄ¼ş £¬µ÷ÓÃÍâÉè¶Áº¯Êı*/
-	if ((this->i_mode & Inode::IFMT) == Inode::IFCHR)
+	this->i_flag |= Inode::IACC;
+	/* ä¸€æ¬¡ä¸€ä¸ªå­—ç¬¦å—åœ°è¯»å…¥æ‰€éœ€å…¨éƒ¨æ•°æ®ï¼Œç›´è‡³é‡åˆ°æ–‡ä»¶å°¾ */
+	while(NOERROR == u.u_error && u.u_IOParam.m_Count != 0)
 	{
-		short major = Utility::GetMajor(this->i_addr[0]); /* »ñÈ¡Éè±¸ºÅÖĞµÄÖ÷Éè±¸ºÅ */
-
-		devMgr.GetCharDevice(major).Read(this->i_addr[0]); /* µ÷ÓÃÍâÉè¶Áº¯Êı */
-		return;											   /* ¶ÁÍêºó·µ»Ø */
-	}
-
-	/* Ò»´ÎÒ»¸ö×Ö·û¿éµØ¶ÁÈëËùĞèÈ«²¿Êı¾İ£¬Ö±ÖÁÓöµ½ÎÄ¼şÎ² */
-	while (User::NOERROR == u.u_error && u.u_IOParam.m_Count != 0)
-	{
-		/* ¼ÆËãµ±Ç°×Ö·û¿éÔÚÎÄ¼şÖĞµÄÂß¼­¿éºÅlbn£¬ÒÔ¼°ÔÚ×Ö·û¿éÖĞµÄÆğÊ¼Î»ÖÃoffset */
 		lbn = bn = u.u_IOParam.m_Offset / Inode::BLOCK_SIZE;
 		offset = u.u_IOParam.m_Offset % Inode::BLOCK_SIZE;
-		/* ´«ËÍµ½ÓÃ»§ÇøµÄ×Ö½ÚÊıÁ¿£¬È¡¶ÁÇëÇóµÄÊ£Óà×Ö½ÚÊıÓëµ±Ç°×Ö·û¿éÄÚÓĞĞ§×Ö½ÚÊı½ÏĞ¡Öµ */
-		nbytes = Utility::Min(Inode::BLOCK_SIZE - offset /* ¿éÄÚÓĞĞ§×Ö½ÚÊı */, u.u_IOParam.m_Count);
-
-		if ((this->i_mode & Inode::IFMT) != Inode::IFBLK)
-		{ /* Èç¹û²»ÊÇÌØÊâ¿éÉè±¸ÎÄ¼ş */
-
-			int remain = this->i_size - u.u_IOParam.m_Offset;
-			/* Èç¹ûÒÑ¶Áµ½³¬¹ıÎÄ¼ş½áÎ² */
-			if (remain <= 0)
-			{
-				return; /* ¶ÁÍêºó·µ»Ø */
-			}
-			/* ´«ËÍµÄ×Ö½ÚÊıÁ¿»¹È¡¾öÓÚÊ£ÓàÎÄ¼şµÄ³¤¶È */
-			nbytes = Utility::Min(nbytes, remain);
-
-			/* ½«Âß¼­¿éºÅlbn×ª»»³ÉÎïÀíÅÌ¿éºÅbn £¬BmapÓĞÉèÖÃInode::rablock¡£µ±UNIXÈÏÎª»ñÈ¡Ô¤¶Á¿éµÄ¿ªÏúÌ«´óÊ±£¬
-			 * »á·ÅÆúÔ¤¶Á£¬´ËÊ± Inode::rablock ÖµÎª 0¡£
-			 * */
-			if ((bn = this->Bmap(lbn)) == 0)
-			{
-				/* Èç¹ûÂß¼­¿éºÅlbn¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅbnÎª0£¬Ôò·µ»Ø */
-				return;
-			}
-			dev = this->i_dev; /* Èç¹û²»ÊÇÌØÊâ¿éÉè±¸ÎÄ¼ş£¬ÔòÉè±¸ºÅÎªi_dev */
-		}
-		else /* Èç¹ûÊÇÌØÊâ¿éÉè±¸ÎÄ¼ş */
+		/* ä¼ é€åˆ°ç”¨æˆ·åŒºçš„å­—èŠ‚æ•°é‡ï¼Œå–è¯»è¯·æ±‚çš„å‰©ä½™å­—èŠ‚æ•°ä¸å½“å‰å­—ç¬¦å—å†…æœ‰æ•ˆå­—èŠ‚æ•°è¾ƒå°å€¼ */
+		nbytes = std::min(Inode::BLOCK_SIZE - offset /* å—å†…æœ‰æ•ˆå­—èŠ‚æ•° */, u.u_IOParam.m_Count);
+		/* å¦‚æœä¸æ˜¯ç‰¹æ®Šå—è®¾å¤‡æ–‡ä»¶ */
+		int remain = this->i_size - u.u_IOParam.m_Offset;
+		/* å¦‚æœå·²è¯»åˆ°è¶…è¿‡æ–‡ä»¶ç»“å°¾ */
+		if( remain <= 0)
 		{
-			dev = this->i_addr[0];	 /* ÌØÊâ¿éÉè±¸ÎÄ¼şi_addr[0]ÖĞ´æ·ÅµÄÊÇÉè±¸ºÅ */
-			Inode::rablock = bn + 1; /* Ô¤¶ÁÏÂÒ»¿é */
+			return;
 		}
-
-		if (this->i_lastr + 1 == lbn) /* Èç¹ûÊÇË³Ğò¶Á£¬Ôò½øĞĞÔ¤¶Á */
+		/* ä¼ é€çš„å­—èŠ‚æ•°é‡è¿˜å–å†³äºå‰©ä½™æ–‡ä»¶çš„é•¿åº¦ */
+		nbytes = std::min(nbytes, remain);
+		/* å°†é€»è¾‘å—å·lbnè½¬æ¢æˆç‰©ç†ç›˜å—å·bn ï¼ŒBmapæœ‰è®¾ç½®Inode::rablockã€‚å½“UNIXè®¤ä¸ºè·å–é¢„è¯»å—çš„å¼€é”€å¤ªå¤§æ—¶ï¼Œ
+			* ä¼šæ”¾å¼ƒé¢„è¯»ï¼Œæ­¤æ—¶ Inode::rablock å€¼ä¸º 0ã€‚
+			* */
+		if( (bn = this->Bmap(lbn)) == 0 )
 		{
-			/* ¶Áµ±Ç°¿é£¬²¢Ô¤¶ÁÏÂÒ»¿é */
-			pBuf = bufMgr.Breada(dev, bn, Inode::rablock);
+			return;
 		}
-		else
-		{
-			/* ²¢·ÇË³Ğò¶Á£¬Ö»¶Áµ±Ç°¿é */
-			pBuf = bufMgr.Bread(dev, bn); /* ¶ÁÈ¡ÎïÀíÅÌ¿éºÅbn¶ÔÓ¦µÄ»º³åÇø */
-		}
-		/* ¼ÇÂ¼×î½ü¶ÁÈ¡×Ö·û¿éµÄÂß¼­¿éºÅ */
+		pBuf = bufMgr.Bread(bn);
+		/* è®°å½•æœ€è¿‘è¯»å–å­—ç¬¦å—çš„é€»è¾‘å—å· */
 		this->i_lastr = lbn;
-
-		/* »º´æÖĞÊı¾İÆğÊ¼¶ÁÎ»ÖÃ */
-		unsigned char *start = pBuf->b_addr + offset;
-
-		/* ¶Á²Ù×÷: ´Ó»º³åÇø¿½±´µ½ÓÃ»§Ä¿±êÇø
-		 * i386Ğ¾Æ¬ÓÃÍ¬Ò»ÕÅÒ³±íÓ³ÉäÓÃ»§¿Õ¼äºÍÄÚºË¿Õ¼ä£¬ÕâÒ»µãÓ²¼şÉÏµÄ²îÒì Ê¹µÃi386ÉÏÊµÏÖ iomove²Ù×÷
-		 * ±ÈPDP-11ÒªÈİÒ×Ğí¶à*/
-		Utility::IOMove(start, u.u_IOParam.m_Base, nbytes);
-
-		/* ÓÃ´«ËÍ×Ö½ÚÊınbytes¸üĞÂ¶ÁĞ´Î»ÖÃ */
-		u.u_IOParam.m_Base += nbytes;	/* ¸üĞÂÓÃ»§Ä¿±êÇø */
-		u.u_IOParam.m_Offset += nbytes; /* ¸üĞÂ¶ÁĞ´Î»ÖÃ */
-		u.u_IOParam.m_Count -= nbytes;	/* ¸üĞÂÊ£Óà×Ö½ÚÊı */
-
-		bufMgr.Brelse(pBuf); /* Ê¹ÓÃÍê»º´æ£¬ÊÍ·Å¸Ã×ÊÔ´ */
+		/* ç¼“å­˜ä¸­æ•°æ®èµ·å§‹è¯»ä½ç½® */
+		unsigned char* start = pBuf->b_addr + offset;
+		/* è¯»æ“ä½œ: ä»ç¼“å†²åŒºæ‹·è´åˆ°ç”¨æˆ·ç›®æ ‡åŒº
+		 * i386èŠ¯ç‰‡ç”¨åŒä¸€å¼ é¡µè¡¨æ˜ å°„ç”¨æˆ·ç©ºé—´å’Œå†…æ ¸ç©ºé—´ï¼Œè¿™ä¸€ç‚¹ç¡¬ä»¶ä¸Šçš„å·®å¼‚ ä½¿å¾—i386ä¸Šå®ç° iomoveæ“ä½œ
+		 * æ¯”PDP-11è¦å®¹æ˜“è®¸å¤š*/
+		memcpy( u.u_IOParam.m_Base, start, nbytes);
+		/* ç”¨ä¼ é€å­—èŠ‚æ•°nbytesæ›´æ–°è¯»å†™ä½ç½® */
+		u.u_IOParam.m_Base += nbytes;
+		u.u_IOParam.m_Offset += nbytes;
+		u.u_IOParam.m_Count -= nbytes;
+		bufMgr.Brelse(pBuf);	/* ä½¿ç”¨å®Œç¼“å­˜ï¼Œé‡Šæ”¾è¯¥èµ„æº */
 	}
 }
 
-/*¸ù¾İInode¶ÔÏóÖĞµÄÎïÀí´ÅÅÌ¿éË÷Òı±í£¬½«Êı¾İĞ´ÈëÎÄ¼ş*/
 void Inode::WriteI()
 {
-	int lbn;													   /* ÎÄ¼şÂß¼­¿éºÅ */
-	int bn;														   /* lbn¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ */
-	int offset;													   /* µ±Ç°×Ö·û¿éÄÚÆğÊ¼´«ËÍÎ»ÖÃ */
-	int nbytes;													   /* ´«ËÍ×Ö½ÚÊıÁ¿ */
-	short dev;													   /* Éè±¸ºÅ */
-	Buf *pBuf;													   /* »º´æÖ¸Õë */
-	User &u = Kernel::Instance().GetUser();						   /* »ñÈ¡ÓÃ»§userÊı¾İ½á¹¹ */
-	BufferManager &bufMgr = Kernel::Instance().GetBufferManager(); /* »ñÈ¡»º´æ¹ÜÀíÆ÷ */
-	DeviceManager &devMgr = Kernel::Instance().GetDeviceManager(); /* »ñÈ¡Éè±¸¹ÜÀíÆ÷ */
-
-	/* ÉèÖÃInode±»·ÃÎÊ±êÖ¾Î» */
-	this->i_flag |= (Inode::IACC | Inode::IUPD); /* ÉèÖÃ±»·ÃÎÊ±êÖ¾Î»ºÍ±»ĞŞ¸Ä±êÖ¾Î» */
-
-	/* ¶Ô×Ö·ûÉè±¸µÄ·ÃÎÊ */
-	if ((this->i_mode & Inode::IFMT) == Inode::IFCHR)
+	int lbn;	/* æ–‡ä»¶é€»è¾‘å—å· */
+	int bn;		/* lbnå¯¹åº”çš„ç‰©ç†ç›˜å—å· */
+	int offset;	/* å½“å‰å­—ç¬¦å—å†…èµ·å§‹ä¼ é€ä½ç½® */
+	int nbytes;	/* ä¼ é€å­—èŠ‚æ•°é‡ */
+	//short dev;
+	Buf* pBuf;
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
+	/* è®¾ç½®Inodeè¢«è®¿é—®æ ‡å¿—ä½ */
+	this->i_flag |= (Inode::IACC | Inode::IUPD);
+	if( 0 == u.u_IOParam.m_Count)
 	{
-		/* Èç¹ûÊÇ×Ö·ûÉè±¸ÎÄ¼ş£¬ÔòÖ±½Óµ÷ÓÃ×Ö·ûÉè±¸µÄWriteº¯Êı */
-		short major = Utility::GetMajor(this->i_addr[0]); /* »ñÈ¡Éè±¸ºÅ */
-
-		devMgr.GetCharDevice(major).Write(this->i_addr[0]); /* µ÷ÓÃ×Ö·ûÉè±¸µÄWriteº¯Êı */
-		return;												/* ·µ»Ø */
-	}
-
-	if (0 == u.u_IOParam.m_Count)
-	{
-		/* ĞèÒª¶Á×Ö½ÚÊıÎªÁã£¬Ôò·µ»Ø */
+		/* éœ€è¦è¯»å­—èŠ‚æ•°ä¸ºé›¶ï¼Œåˆ™è¿”å› */
 		return;
 	}
-
-	while (User::NOERROR == u.u_error && u.u_IOParam.m_Count != 0)
+	while(NOERROR == u.u_error && u.u_IOParam.m_Count != 0 )
 	{
-		/* ¼ÆËãµ±Ç°×Ö·û¿éµÄÂß¼­¿éºÅlbn£¬ÒÔ¼°ÔÚ¸Ã×Ö·û¿éÖĞµÄÆğÊ¼´«ËÍÎ»ÖÃoffset */
 		lbn = u.u_IOParam.m_Offset / Inode::BLOCK_SIZE;
 		offset = u.u_IOParam.m_Offset % Inode::BLOCK_SIZE;
-		/* ¼ÆËã´«ËÍ×Ö½ÚÊıÁ¿nbytes,ÊÇ¸Ã¿éÖĞÊ£Óà´óĞ¡ÓëÓÃ»§ÒªÇó´«ËÍµÄ´óĞ¡µÄ½ÏĞ¡Öµ */
-		nbytes = Utility::Min(Inode::BLOCK_SIZE - offset, u.u_IOParam.m_Count);
-
-		if ((this->i_mode & Inode::IFMT) != Inode::IFBLK)
-		{ /* ÆÕÍ¨ÎÄ¼ş */
-
-			/* ½«Âß¼­¿éºÅlbn×ª»»³ÉÎïÀíÅÌ¿éºÅbn */
-			if ((bn = this->Bmap(lbn)) == 0)
-			{
-				return; /* Èç¹ûÂß¼­¿éºÅlbn¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅbnÎª0£¬Ôò·µ»Ø */
-			}
-			dev = this->i_dev; /* Éè±¸ºÅÉèÎªi_dev */
-		}
-		else
-		{ /* ¿éÉè±¸ÎÄ¼ş£¬Ò²¾ÍÊÇÓ²ÅÌ */
-			dev = this->i_addr[0];
-		}
-
-		if (Inode::BLOCK_SIZE == nbytes)
+		nbytes = std::min(Inode::BLOCK_SIZE - offset, u.u_IOParam.m_Count);
+		/* æ™®é€šæ–‡ä»¶ */
+		/* å°†é€»è¾‘å—å·lbnè½¬æ¢æˆç‰©ç†ç›˜å—å·bn */
+		if( (bn = this->Bmap(lbn)) == 0 )
 		{
-			/* Èç¹ûĞ´ÈëÊı¾İÕıºÃÂúÒ»¸ö×Ö·û¿é£¬ÔòÎªÆä·ÖÅä»º´æ */
-			pBuf = bufMgr.GetBlk(dev, bn);
+			return;
+		}
+		//dev = this->i_dev;
+		if(Inode::BLOCK_SIZE == nbytes)
+		{
+			/* å¦‚æœå†™å…¥æ•°æ®æ­£å¥½æ»¡ä¸€ä¸ªå­—ç¬¦å—ï¼Œåˆ™ä¸ºå…¶åˆ†é…ç¼“å­˜ */
+			pBuf = bufMgr.GetBlk(bn);
 		}
 		else
 		{
-			/* Ğ´ÈëÊı¾İ²»ÂúÒ»¸ö×Ö·û¿é£¬ÏÈ¶ÁºóĞ´£¨¶Á³ö¸Ã×Ö·û¿éÒÔ±£»¤²»ĞèÒªÖØĞ´µÄÊı¾İ£© */
-			pBuf = bufMgr.Bread(dev, bn);
+			/* å†™å…¥æ•°æ®ä¸æ»¡ä¸€ä¸ªå­—ç¬¦å—ï¼Œå…ˆè¯»åå†™ï¼ˆè¯»å‡ºè¯¥å­—ç¬¦å—ä»¥ä¿æŠ¤ä¸éœ€è¦é‡å†™çš„æ•°æ®ï¼‰ */
+			pBuf = bufMgr.Bread(bn);
 		}
-
-		/* »º´æÖĞÊı¾İµÄÆğÊ¼Ğ´Î»ÖÃ */
-		unsigned char *start = pBuf->b_addr + offset;
-
-		/* Ğ´²Ù×÷: ´ÓÓÃ»§Ä¿±êÇø¿½±´Êı¾İµ½»º³åÇø */
-		Utility::IOMove(u.u_IOParam.m_Base, start, nbytes);
-
-		/* ÓÃ´«ËÍ×Ö½ÚÊınbytes¸üĞÂ¶ÁĞ´Î»ÖÃ,ĞŞ¸Äuser½á¹¹ÖĞµÄIO²ÎÊı½á¹¹ */
-		u.u_IOParam.m_Base += nbytes;	/* ¸üĞÂÓÃ»§Ä¿±êÇø */
-		u.u_IOParam.m_Offset += nbytes; /* ¸üĞÂ¶ÁĞ´Î»ÖÃ */
-		u.u_IOParam.m_Count -= nbytes;	/* ¸üĞÂÊ£Óà×Ö½ÚÊı */
-
-		if (u.u_error != User::NOERROR) /* Ğ´¹ı³ÌÖĞ³ö´í */
+		/* ç¼“å­˜ä¸­æ•°æ®çš„èµ·å§‹å†™ä½ç½® */
+		unsigned char* start = pBuf->b_addr + offset;
+		/* å†™æ“ä½œ: ä»ç”¨æˆ·ç›®æ ‡åŒºæ‹·è´æ•°æ®åˆ°ç¼“å†²åŒº */
+		memcpy(start, u.u_IOParam.m_Base,  nbytes);
+		/* ç”¨ä¼ é€å­—èŠ‚æ•°nbytesæ›´æ–°è¯»å†™ä½ç½® */
+		u.u_IOParam.m_Base += nbytes;
+		u.u_IOParam.m_Offset += nbytes;
+		u.u_IOParam.m_Count -= nbytes;
+		if( u.u_error !=NOERROR )	/* å†™è¿‡ç¨‹ä¸­å‡ºé”™ */
 		{
-			bufMgr.Brelse(pBuf); /* ÊÍ·Å»º´æ */
+		    printf("u_error in WriteI\n");
+			bufMgr.Brelse(pBuf);
 		}
-		else if ((u.u_IOParam.m_Offset % Inode::BLOCK_SIZE) == 0) /* Èç¹ûĞ´ÂúÒ»¸ö×Ö·û¿é */
+		else if( (u.u_IOParam.m_Offset % Inode::BLOCK_SIZE) == 0 )	/* å¦‚æœå†™æ»¡ä¸€ä¸ªå­—ç¬¦å— */
 		{
-			/* ÒÔÒì²½·½Ê½½«×Ö·û¿éĞ´Èë´ÅÅÌ£¬½ø³Ì²»ĞèµÈ´ıI/O²Ù×÷½áÊø£¬¿ÉÒÔ¼ÌĞøÍùÏÂÖ´ĞĞ */
+			/* ä»¥å¼‚æ­¥æ–¹å¼å°†å­—ç¬¦å—å†™å…¥ç£ç›˜ï¼Œè¿›ç¨‹ä¸éœ€ç­‰å¾…I/Oæ“ä½œç»“æŸï¼Œå¯ä»¥ç»§ç»­å¾€ä¸‹æ‰§è¡Œ */
 			bufMgr.Bawrite(pBuf);
 		}
-		else /* Èç¹û»º³åÇøÎ´Ğ´Âú */
+		else /* å¦‚æœç¼“å†²åŒºæœªå†™æ»¡ */
 		{
-			/* ½«»º´æ±ê¼ÇÎªÑÓ³ÙĞ´£¬²»¼±ÓÚ½øĞĞI/O²Ù×÷½«×Ö·û¿éÊä³öµ½´ÅÅÌÉÏ */
+			/* å°†ç¼“å­˜æ ‡è®°ä¸ºå»¶è¿Ÿå†™ï¼Œä¸æ€¥äºè¿›è¡ŒI/Oæ“ä½œå°†å­—ç¬¦å—è¾“å‡ºåˆ°ç£ç›˜ä¸Š */
 			bufMgr.Bdwrite(pBuf);
 		}
-
-		/* ÆÕÍ¨ÎÄ¼ş³¤¶ÈÔö¼Ó */
-		if ((this->i_size < u.u_IOParam.m_Offset) && (this->i_mode & (Inode::IFBLK & Inode::IFCHR)) == 0)
+		/* æ™®é€šæ–‡ä»¶é•¿åº¦å¢åŠ  */
+		if( (this->i_size < u.u_IOParam.m_Offset))
 		{
-			/* Èç¹ûÎÄ¼ş³¤¶ÈĞ¡ÓÚĞ´ÈëÎ»ÖÃ£¬Ôò¸üĞÂÎÄ¼ş³¤¶È */
 			this->i_size = u.u_IOParam.m_Offset;
 		}
-
-		/*
-		 * Ö®Ç°¹ı³ÌÖĞ¶ÁÅÌ¿ÉÄÜµ¼ÖÂ½ø³ÌÇĞ»»£¬ÔÚ½ø³ÌË¯ÃßÆÚ¼äµ±Ç°ÄÚ´æInode¿ÉÄÜ
-		 * ±»Í¬²½µ½Íâ´æInode£¬ÔÚ´ËĞèÒªÖØĞÂÉèÖÃ¸üĞÂ±êÖ¾Î»¡£
-		 * ºÃÏñÃ»ÓĞ±ØÒªÑ½£¡¼´Ê¹writeÏµÍ³µ÷ÓÃÃ»ÓĞÉÏËø£¬iput¿´µ½i_count¼õµ½0Ö®ºó²Å»á½«ÄÚ´æi½ÚµãÍ¬²½»Ø´ÅÅÌ¡£¶øÕâÔÚ
-		 * ÎÄ¼şÃ»ÓĞcloseÖ®Ç°ÊÇ²»»á·¢ÉúµÄ¡£
-		 * ÎÒÃÇµÄÏµÍ³¶ÔwriteÏµÍ³µ÷ÓÃÉÏËø¾Í¸ü²»¿ÉÄÜ³öÏÖÕâÖÖÇé¿öÁË¡£
-		 * ÕæµÄÏë°ÑËüÈ¥µô¡£
+		/* 
+		 * ä¹‹å‰è¿‡ç¨‹ä¸­è¯»ç›˜å¯èƒ½å¯¼è‡´è¿›ç¨‹åˆ‡æ¢ï¼Œåœ¨è¿›ç¨‹ç¡çœ æœŸé—´å½“å‰å†…å­˜Inodeå¯èƒ½
+		 * è¢«åŒæ­¥åˆ°å¤–å­˜Inodeï¼Œåœ¨æ­¤éœ€è¦é‡æ–°è®¾ç½®æ›´æ–°æ ‡å¿—ä½ã€‚
+		 * å¥½åƒæ²¡æœ‰å¿…è¦å‘€ï¼å³ä½¿writeç³»ç»Ÿè°ƒç”¨æ²¡æœ‰ä¸Šé”ï¼Œiputçœ‹åˆ°i_countå‡åˆ°0ä¹‹åæ‰ä¼šå°†å†…å­˜ièŠ‚ç‚¹åŒæ­¥å›ç£ç›˜ã€‚è€Œè¿™åœ¨
+		 * æ–‡ä»¶æ²¡æœ‰closeä¹‹å‰æ˜¯ä¸ä¼šå‘ç”Ÿçš„ã€‚
+		 * æˆ‘ä»¬çš„ç³»ç»Ÿå¯¹writeç³»ç»Ÿè°ƒç”¨ä¸Šé”å°±æ›´ä¸å¯èƒ½å‡ºç°è¿™ç§æƒ…å†µäº†ã€‚
+		 * çœŸçš„æƒ³æŠŠå®ƒå»æ‰ã€‚
 		 */
 		this->i_flag |= Inode::IUPD;
 	}
 }
 
-/*±¾º¯ÊıÓÃÓÚ½«ÎÄ¼şµÄÂß¼­¿éºÅ×ª»»³É¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ*/
 int Inode::Bmap(int lbn)
 {
-	Buf *pFirstBuf;												   /* ÓÃÓÚ·ÃÎÊÒ»´Î¼ä½ÓË÷Òı±í */
-	Buf *pSecondBuf;											   /* ÓÃÓÚ·ÃÎÊ¶ş´Î¼ä½ÓË÷Òı±í */
-	int phyBlkno;												   /* ×ª»»ºóµÄÎïÀíÅÌ¿éºÅ */
-	int *iTable;												   /* ÓÃÓÚ·ÃÎÊË÷ÒıÅÌ¿éÖĞÒ»´Î¼ä½Ó¡¢Á½´Î¼ä½ÓË÷Òı±í */
-	int index;													   /* ÓÃÓÚ·ÃÎÊË÷ÒıÅÌ¿éÖĞÒ»´Î¼ä½Ó¡¢Á½´Î¼ä½ÓË÷Òı±íÖĞµÄË÷ÒıÖµ */
-	User &u = Kernel::Instance().GetUser();						   /* »ñÈ¡µ±Ç°ÓÃ»§ */
-	BufferManager &bufMgr = Kernel::Instance().GetBufferManager(); /* »ñÈ¡»º³åÇø¹ÜÀíÆ÷ */
-	FileSystem &fileSys = Kernel::Instance().GetFileSystem();	   /* »ñÈ¡ÎÄ¼şÏµÍ³ */
-
-	/*
-	 * Unix V6++µÄÎÄ¼şË÷Òı½á¹¹£º(Ğ¡ĞÍ¡¢´óĞÍºÍ¾ŞĞÍÎÄ¼ş)
-	 * (1) i_addr[0] - i_addr[5]ÎªÖ±½ÓË÷Òı±í£¬ÎÄ¼ş³¤¶È·¶Î§ÊÇ0 - 6¸öÅÌ¿é£»
+	Buf* pFirstBuf;
+	Buf* pSecondBuf;
+	int phyBlkno;	/* è½¬æ¢åçš„ç‰©ç†ç›˜å—å· */
+	int* iTable;	/* ç”¨äºè®¿é—®ç´¢å¼•ç›˜å—ä¸­ä¸€æ¬¡é—´æ¥ã€ä¸¤æ¬¡é—´æ¥ç´¢å¼•è¡¨ */
+	int index;
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
+	FileSystem& fileSys = Kernel::Instance().GetFileSystem();
+	
+	/* 
+	 * Unix V6++çš„æ–‡ä»¶ç´¢å¼•ç»“æ„ï¼š(å°å‹ã€å¤§å‹å’Œå·¨å‹æ–‡ä»¶)
+	 * (1) i_addr[0] - i_addr[5]ä¸ºç›´æ¥ç´¢å¼•è¡¨ï¼Œæ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯0 - 6ä¸ªç›˜å—ï¼›
+	 * 
+	 * (2) i_addr[6] - i_addr[7]å­˜æ”¾ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ¯ç£ç›˜å—
+	 * ä¸Šå­˜æ”¾128ä¸ªæ–‡ä»¶æ•°æ®ç›˜å—å·ï¼Œæ­¤ç±»æ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯7 - (128 * 2 + 6)ä¸ªç›˜å—ï¼›
 	 *
-	 * (2) i_addr[6] - i_addr[7]´æ·ÅÒ»´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬Ã¿´ÅÅÌ¿é
-	 * ÉÏ´æ·Å128¸öÎÄ¼şÊı¾İÅÌ¿éºÅ£¬´ËÀàÎÄ¼ş³¤¶È·¶Î§ÊÇ7 - (128 * 2 + 6)¸öÅÌ¿é£»
-	 *
-	 * (3) i_addr[8] - i_addr[9]´æ·Å¶ş´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬Ã¿¸ö¶ş´Î¼ä½Ó
-	 * Ë÷Òı±í¼ÇÂ¼128¸öÒ»´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬´ËÀàÎÄ¼ş³¤¶È·¶Î§ÊÇ
+	 * (3) i_addr[8] - i_addr[9]å­˜æ”¾äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ¯ä¸ªäºŒæ¬¡é—´æ¥
+	 * ç´¢å¼•è¡¨è®°å½•128ä¸ªä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ­¤ç±»æ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯
 	 * (128 * 2 + 6 ) < size <= (128 * 128 * 2 + 128 * 2 + 6)
 	 */
 
-	if (lbn >= Inode::HUGE_FILE_BLOCK)
+	if(lbn >= Inode::HUGE_FILE_BLOCK)
 	{
-		/* Èç¹ûÎÄ¼ş³¤¶È³¬¹ı¾ŞĞÍÎÄ¼şµÄ×î´ó³¤¶È£¬Ôò·µ»Ø´íÎó */
-		u.u_error = User::EFBIG; /* ÎÄ¼şÌ«´ó */
-		return 0;				 /* ·µ»Ø0 */
+		u.u_error =EFBIG;
+		printf("[ERROR] æ–‡ä»¶è¿‡å¤§ï¼Œæ— æ³•å­˜å‚¨.\n");
+		return 0;
 	}
 
-	if (lbn < 6) /* Èç¹ûÊÇĞ¡ĞÍÎÄ¼ş£¬´Ó»ù±¾Ë÷Òı±íi_addr[0-5]ÖĞ»ñµÃÎïÀíÅÌ¿éºÅ¼´¿É */
+	if(lbn < 6)		/* å¦‚æœæ˜¯å°å‹æ–‡ä»¶ï¼Œä»åŸºæœ¬ç´¢å¼•è¡¨i_addr[0-5]ä¸­è·å¾—ç‰©ç†ç›˜å—å·å³å¯ */
 	{
-		phyBlkno = this->i_addr[lbn]; /* ´Ó»ù±¾Ë÷Òı±íÖĞ»ñµÃÎïÀíÅÌ¿éºÅ */
+		phyBlkno = this->i_addr[lbn];
 
-		/*
-		 * Èç¹û¸ÃÂß¼­¿éºÅ»¹Ã»ÓĞÏàÓ¦µÄÎïÀíÅÌ¿éºÅÓëÖ®¶ÔÓ¦£¬Ôò·ÖÅäÒ»¸öÎïÀí¿é¡£
-		 * ÕâÍ¨³£·¢ÉúÔÚ¶ÔÎÄ¼şµÄĞ´Èë£¬µ±Ğ´ÈëÎ»ÖÃ³¬³öÎÄ¼ş´óĞ¡£¬¼´¶Ôµ±Ç°
-		 * ÎÄ¼ş½øĞĞÀ©³äĞ´Èë£¬¾ÍĞèÒª·ÖÅä¶îÍâµÄ´ÅÅÌ¿é£¬²¢ÎªÖ®½¨Á¢Âß¼­¿éºÅ
-		 * ÓëÎïÀíÅÌ¿éºÅÖ®¼äµÄÓ³Éä¡£
+		/* 
+		 * å¦‚æœè¯¥é€»è¾‘å—å·è¿˜æ²¡æœ‰ç›¸åº”çš„ç‰©ç†ç›˜å—å·ä¸ä¹‹å¯¹åº”ï¼Œåˆ™åˆ†é…ä¸€ä¸ªç‰©ç†å—ã€‚
+		 * è¿™é€šå¸¸å‘ç”Ÿåœ¨å¯¹æ–‡ä»¶çš„å†™å…¥ï¼Œå½“å†™å…¥ä½ç½®è¶…å‡ºæ–‡ä»¶å¤§å°ï¼Œå³å¯¹å½“å‰
+		 * æ–‡ä»¶è¿›è¡Œæ‰©å……å†™å…¥ï¼Œå°±éœ€è¦åˆ†é…é¢å¤–çš„ç£ç›˜å—ï¼Œå¹¶ä¸ºä¹‹å»ºç«‹é€»è¾‘å—å·
+		 * ä¸ç‰©ç†ç›˜å—å·ä¹‹é—´çš„æ˜ å°„ã€‚
 		 */
-		if (phyBlkno == 0 && (pFirstBuf = fileSys.Alloc(this->i_dev)) != NULL)
+		if( phyBlkno == 0 && (pFirstBuf = fileSys.Alloc()) != NULL )
 		{
-			/*
-			 * ÒòÎªºóÃæºÜ¿ÉÄÜÂíÉÏ»¹ÒªÓÃµ½´Ë´¦ĞÂ·ÖÅäµÄÊı¾İ¿é£¬ËùÒÔ²»¼±ÓÚÁ¢¿ÌÊä³öµ½
-			 * ´ÅÅÌÉÏ£»¶øÊÇ½«»º´æ±ê¼ÇÎªÑÓ³ÙĞ´·½Ê½£¬ÕâÑù¿ÉÒÔ¼õÉÙÏµÍ³µÄI/O²Ù×÷¡£
+			/* 
+			 * å› ä¸ºåé¢å¾ˆå¯èƒ½é©¬ä¸Šè¿˜è¦ç”¨åˆ°æ­¤å¤„æ–°åˆ†é…çš„æ•°æ®å—ï¼Œæ‰€ä»¥ä¸æ€¥äºç«‹åˆ»è¾“å‡ºåˆ°
+			 * ç£ç›˜ä¸Šï¼›è€Œæ˜¯å°†ç¼“å­˜æ ‡è®°ä¸ºå»¶è¿Ÿå†™æ–¹å¼ï¼Œè¿™æ ·å¯ä»¥å‡å°‘ç³»ç»Ÿçš„I/Oæ“ä½œã€‚
 			 */
-			bufMgr.Bdwrite(pFirstBuf);	   /* ½«ĞÂ·ÖÅäµÄÊı¾İ¿éĞ´Èë´ÅÅÌ */
-			phyBlkno = pFirstBuf->b_blkno; /* »ñµÃĞÂ·ÖÅäµÄÊı¾İ¿éµÄÎïÀíÅÌ¿éºÅ */
-			/* ½«Âß¼­¿éºÅlbnÓ³Éäµ½ÎïÀíÅÌ¿éºÅphyBlkno */
-			this->i_addr[lbn] = phyBlkno; /* ½«ĞÂ·ÖÅäµÄÊı¾İ¿éµÄÎïÀíÅÌ¿éºÅĞ´Èë»ù±¾Ë÷Òı±í */
-			this->i_flag |= Inode::IUPD;  /* ÉèÖÃ¸üĞÂ±êÖ¾Î» */
+			bufMgr.Bdwrite(pFirstBuf);
+			phyBlkno = pFirstBuf->b_blkno;
+			/* å°†é€»è¾‘å—å·lbnæ˜ å°„åˆ°ç‰©ç†ç›˜å—å·phyBlkno */
+			this->i_addr[lbn] = phyBlkno;
+			this->i_flag |= Inode::IUPD;
 		}
-		/* ÕÒµ½Ô¤¶Á¿é¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ */
+		/* æ‰¾åˆ°é¢„è¯»å—å¯¹åº”çš„ç‰©ç†ç›˜å—å· */
 		Inode::rablock = 0;
-		if (lbn <= 4)
+		if(lbn <= 4)
 		{
-			/*
-			 * i_addr[0] - i_addr[5]ÎªÖ±½ÓË÷Òı±í¡£Èç¹ûÔ¤¶Á¿é¶ÔÓ¦ÎïÀí¿éºÅ¿ÉÒÔ´Ó
-			 * Ö±½ÓË÷Òı±íÖĞ»ñµÃ£¬Ôò¼ÇÂ¼ÔÚInode::rablockÖĞ¡£Èç¹ûĞèÒª¶îÍâµÄI/O¿ªÏú
-			 * ¶ÁÈë¼ä½ÓË÷Òı¿é£¬¾ÍÏÔµÃ²»Ì«ÖµµÃÁË¡£Æ¯ÁÁ£¡
-			 *
+			/* 
+			 * i_addr[0] - i_addr[5]ä¸ºç›´æ¥ç´¢å¼•è¡¨ã€‚å¦‚æœé¢„è¯»å—å¯¹åº”ç‰©ç†å—å·å¯ä»¥ä»
+			 * ç›´æ¥ç´¢å¼•è¡¨ä¸­è·å¾—ï¼Œåˆ™è®°å½•åœ¨Inode::rablockä¸­ã€‚å¦‚æœéœ€è¦é¢å¤–çš„I/Oå¼€é”€
+			 * è¯»å…¥é—´æ¥ç´¢å¼•å—ï¼Œå°±æ˜¾å¾—ä¸å¤ªå€¼å¾—äº†ã€‚æ¼‚äº®ï¼
 			 */
 			Inode::rablock = this->i_addr[lbn + 1];
 		}
-		/* ´ËÊ±Èç¹ûÎÄ¼ş·ÇĞ¡ĞÍ£¬ÔòInode::rablockÎª0£¬¸Ã²ÎÊı½«»áÔÚ¶ÁĞ´ÎÄ¼şÊ±±»ºöÂÔ */
-		return phyBlkno; /* ·µ»ØÎïÀíÅÌ¿éºÅ */
-	}
-	else /* lbn >= 6 ´óĞÍ¡¢¾ŞĞÍÎÄ¼ş */
-	{
-		/* ¼ÆËãÂß¼­¿éºÅlbn¶ÔÓ¦i_addr[]ÖĞµÄË÷Òı */
 
-		if (lbn < Inode::LARGE_FILE_BLOCK) /* ´óĞÍÎÄ¼ş: ³¤¶È½éÓÚ7 - (128 * 2 + 6)¸öÅÌ¿éÖ®¼ä */
+		return phyBlkno;
+	}
+	else	/* lbn >= 6 å¤§å‹ã€å·¨å‹æ–‡ä»¶ */
+	{
+		/* è®¡ç®—é€»è¾‘å—å·lbnå¯¹åº”i_addr[]ä¸­çš„ç´¢å¼• */
+
+		if(lbn < Inode::LARGE_FILE_BLOCK)	/* å¤§å‹æ–‡ä»¶: é•¿åº¦ä»‹äº7 - (128 * 2 + 6)ä¸ªç›˜å—ä¹‹é—´ */
 		{
-			index = (lbn - Inode::SMALL_FILE_BLOCK) / Inode::ADDRESS_PER_INDEX_BLOCK + 6; /* ¼ÆËãË÷Òı */
+			index = (lbn - Inode::SMALL_FILE_BLOCK) / Inode::ADDRESS_PER_INDEX_BLOCK + 6;
 		}
-		else /* ¾ŞĞÍÎÄ¼ş: ³¤¶È½éÓÚ263 - (128 * 128 * 2 + 128 * 2 + 6)¸öÅÌ¿éÖ®¼ä */
+		else	/* å·¨å‹æ–‡ä»¶: é•¿åº¦ä»‹äº263 - (128 * 128 * 2 + 128 * 2 + 6)ä¸ªç›˜å—ä¹‹é—´ */
 		{
-			index = (lbn - Inode::LARGE_FILE_BLOCK) / (Inode::ADDRESS_PER_INDEX_BLOCK * Inode::ADDRESS_PER_INDEX_BLOCK) + 8; /* ¼ÆËãË÷Òı */
+			index = (lbn - Inode::LARGE_FILE_BLOCK) / (Inode::ADDRESS_PER_INDEX_BLOCK * Inode::ADDRESS_PER_INDEX_BLOCK) + 8;
 		}
 
 		phyBlkno = this->i_addr[index];
-		/* Èô¸ÃÏîÎªÁã£¬Ôò±íÊ¾²»´æÔÚÏàÓ¦µÄ¼ä½ÓË÷Òı±í¿é */
-		if (0 == phyBlkno)
+		/* è‹¥è¯¥é¡¹ä¸ºé›¶ï¼Œåˆ™è¡¨ç¤ºä¸å­˜åœ¨ç›¸åº”çš„é—´æ¥ç´¢å¼•è¡¨å— */
+		if( 0 == phyBlkno )
 		{
 			this->i_flag |= Inode::IUPD;
-			/* ·ÖÅäÒ»¿ÕÏĞÅÌ¿é´æ·Å¼ä½ÓË÷Òı±í */
-			if ((pFirstBuf = fileSys.Alloc(this->i_dev)) == NULL)
+			/* åˆ†é…ä¸€ç©ºé—²ç›˜å—å­˜æ”¾é—´æ¥ç´¢å¼•è¡¨ */
+			if( (pFirstBuf = fileSys.Alloc()) == NULL )
 			{
-				return 0; /* ·ÖÅäÊ§°Ü */
+				return 0;	/* åˆ†é…å¤±è´¥ */
 			}
-			/* i_addr[index]ÖĞ¼ÇÂ¼¼ä½ÓË÷Òı±íµÄÎïÀíÅÌ¿éºÅ */
+			/* i_addr[index]ä¸­è®°å½•é—´æ¥ç´¢å¼•è¡¨çš„ç‰©ç†ç›˜å—å· */
 			this->i_addr[index] = pFirstBuf->b_blkno;
 		}
 		else
 		{
-			/* ¶Á³ö´æ´¢¼ä½ÓË÷Òı±íµÄ×Ö·û¿é */
-			pFirstBuf = bufMgr.Bread(this->i_dev, phyBlkno);
+			/* è¯»å‡ºå­˜å‚¨é—´æ¥ç´¢å¼•è¡¨çš„å­—ç¬¦å— */
+			pFirstBuf = bufMgr.Bread(phyBlkno);
 		}
-		/* »ñÈ¡»º³åÇøÊ×Ö· */
+		/* è·å–ç¼“å†²åŒºé¦–å€ */
 		iTable = (int *)pFirstBuf->b_addr;
 
-		if (index >= 8) /* ASSERT: 8 <= index <= 9 */
+		if(index >= 8)	/* ASSERT: 8 <= index <= 9 */
 		{
-			/*
-			 * ¶ÔÓÚ¾ŞĞÍÎÄ¼şµÄÇé¿ö£¬pFirstBufÖĞÊÇ¶ş´Î¼ä½ÓË÷Òı±í£¬
-			 * »¹Ğè¸ù¾İÂß¼­¿éºÅ£¬¾­ÓÉ¶ş´Î¼ä½ÓË÷Òı±íÕÒµ½Ò»´Î¼ä½ÓË÷Òı±í
+			/* 
+			 * å¯¹äºå·¨å‹æ–‡ä»¶çš„æƒ…å†µï¼ŒpFirstBufä¸­æ˜¯äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨ï¼Œ
+			 * è¿˜éœ€æ ¹æ®é€»è¾‘å—å·ï¼Œç»ç”±äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰¾åˆ°ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨
 			 */
-			index = ((lbn - Inode::LARGE_FILE_BLOCK) / Inode::ADDRESS_PER_INDEX_BLOCK) % Inode::ADDRESS_PER_INDEX_BLOCK; /* ¼ÆËãË÷Òı */
+			index = ( (lbn - Inode::LARGE_FILE_BLOCK) / Inode::ADDRESS_PER_INDEX_BLOCK ) % Inode::ADDRESS_PER_INDEX_BLOCK;
 
-			/* iTableÖ¸Ïò»º´æÖĞµÄ¶ş´Î¼ä½ÓË÷Òı±í¡£¸ÃÏîÎªÁã£¬²»´æÔÚÒ»´Î¼ä½ÓË÷Òı±í */
-			phyBlkno = iTable[index]; /* Ò»´Î¼ä½ÓË÷Òı±íµÄÎïÀíÅÌ¿éºÅ */
-			if (0 == phyBlkno)
+			/* iTableæŒ‡å‘ç¼“å­˜ä¸­çš„äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨ã€‚è¯¥é¡¹ä¸ºé›¶ï¼Œä¸å­˜åœ¨ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ */
+			phyBlkno = iTable[index];
+			if( 0 == phyBlkno )
 			{
-				/* Èç¹û¸ÃÒ»´Î¼ä½ÓË÷Òı±íÉĞÎ´±»·ÖÅä£¬·ÖÅäÒ»¿ÕÏĞÅÌ¿é´æ·ÅÒ»´Î¼ä½ÓË÷Òı±í */
-				if ((pSecondBuf = fileSys.Alloc(this->i_dev)) == NULL)
+				if( (pSecondBuf = fileSys.Alloc()) == NULL)
 				{
-					/* ·ÖÅäÒ»´Î¼ä½ÓË÷Òı±í´ÅÅÌ¿éÊ§°Ü£¬ÊÍ·Å»º´æÖĞµÄ¶ş´Î¼ä½ÓË÷Òı±í£¬È»ºó·µ»Ø */
+					/* åˆ†é…ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ç£ç›˜å—å¤±è´¥ï¼Œé‡Šæ”¾ç¼“å­˜ä¸­çš„äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨ï¼Œç„¶åè¿”å› */
 					bufMgr.Brelse(pFirstBuf);
 					return 0;
 				}
-				/* ½«ĞÂ·ÖÅäµÄÒ»´Î¼ä½ÓË÷Òı±í´ÅÅÌ¿éºÅ£¬¼ÇÈë¶ş´Î¼ä½ÓË÷Òı±íÏàÓ¦Ïî */
+				/* å°†æ–°åˆ†é…çš„ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ç£ç›˜å—å·ï¼Œè®°å…¥äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨ç›¸åº”é¡¹ */
 				iTable[index] = pSecondBuf->b_blkno;
-				/* ½«¸ü¸ÄºóµÄ¶ş´Î¼ä½ÓË÷Òı±íÑÓ³ÙĞ´·½Ê½Êä³öµ½´ÅÅÌ */
+				/* å°†æ›´æ”¹åçš„äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨å»¶è¿Ÿå†™æ–¹å¼è¾“å‡ºåˆ°ç£ç›˜ */
 				bufMgr.Bdwrite(pFirstBuf);
 			}
 			else
 			{
-				/* ÊÍ·Å¶ş´Î¼ä½ÓË÷Òı±íÕ¼ÓÃµÄ»º´æ£¬²¢¶ÁÈëÒ»´Î¼ä½ÓË÷Òı±í */
+				/* é‡Šæ”¾äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨å ç”¨çš„ç¼“å­˜ï¼Œå¹¶è¯»å…¥ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ */
 				bufMgr.Brelse(pFirstBuf);
-				pSecondBuf = bufMgr.Bread(this->i_dev, phyBlkno);
+				pSecondBuf = bufMgr.Bread(phyBlkno);
 			}
 
-			/* ÁîpFirstBufÖ¸ÏòÒ»´Î¼ä½ÓË÷Òı±í */
 			pFirstBuf = pSecondBuf;
-			/* ÁîiTableÖ¸ÏòÒ»´Î¼ä½ÓË÷Òı±í */
+			/* ä»¤iTableæŒ‡å‘ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ */
 			iTable = (int *)pSecondBuf->b_addr;
 		}
 
-		/* ¼ÆËãÂß¼­¿éºÅlbn×îÖÕÎ»ÓÚÒ»´Î¼ä½ÓË÷Òı±íÖĞµÄ±íÏîĞòºÅindex */
+		/* è®¡ç®—é€»è¾‘å—å·lbnæœ€ç»ˆä½äºä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ä¸­çš„è¡¨é¡¹åºå·index */
 
-		if (lbn < Inode::LARGE_FILE_BLOCK)
+		if( lbn < Inode::LARGE_FILE_BLOCK )
 		{
-			index = (lbn - Inode::SMALL_FILE_BLOCK) % Inode::ADDRESS_PER_INDEX_BLOCK; /* ¼ÆËãË÷Òı */
+			index = (lbn - Inode::SMALL_FILE_BLOCK) % Inode::ADDRESS_PER_INDEX_BLOCK;
 		}
 		else
 		{
-			index = (lbn - Inode::LARGE_FILE_BLOCK) % Inode::ADDRESS_PER_INDEX_BLOCK; /* ¼ÆËãË÷Òı */
+			index = (lbn - Inode::LARGE_FILE_BLOCK) % Inode::ADDRESS_PER_INDEX_BLOCK;
 		}
 
-		if ((phyBlkno = iTable[index]) == 0 && (pSecondBuf = fileSys.Alloc(this->i_dev)) != NULL)
+		if( (phyBlkno = iTable[index]) == 0 && (pSecondBuf = fileSys.Alloc()) != NULL)
 		{
-			/* ½«·ÖÅäµ½µÄÎÄ¼şÊı¾İÅÌ¿éºÅµÇ¼ÇÔÚÒ»´Î¼ä½ÓË÷Òı±íÖĞ */
+			/* å°†åˆ†é…åˆ°çš„æ–‡ä»¶æ•°æ®ç›˜å—å·ç™»è®°åœ¨ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ä¸­ */
 			phyBlkno = pSecondBuf->b_blkno;
 			iTable[index] = phyBlkno;
-			/* ½«Êı¾İÅÌ¿é¡¢¸ü¸ÄºóµÄÒ»´Î¼ä½ÓË÷Òı±íÓÃÑÓ³ÙĞ´·½Ê½Êä³öµ½´ÅÅÌ */
+			/* å°†æ•°æ®ç›˜å—ã€æ›´æ”¹åçš„ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨ç”¨å»¶è¿Ÿå†™æ–¹å¼è¾“å‡ºåˆ°ç£ç›˜ */
 			bufMgr.Bdwrite(pSecondBuf);
 			bufMgr.Bdwrite(pFirstBuf);
 		}
 		else
 		{
-			/* ÊÍ·ÅÒ»´Î¼ä½ÓË÷Òı±íÕ¼ÓÃ»º´æ */
+			/* é‡Šæ”¾ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨å ç”¨ç¼“å­˜ */
 			bufMgr.Brelse(pFirstBuf);
 		}
-		/* ÕÒµ½Ô¤¶Á¿é¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ£¬Èç¹û»ñÈ¡Ô¤¶Á¿éºÅĞèÒª¶îÍâµÄÒ»´Îfor¼ä½ÓË÷Òı¿éµÄIO£¬²»ºÏËã£¬·ÅÆú */
+		/* æ‰¾åˆ°é¢„è¯»å—å¯¹åº”çš„ç‰©ç†ç›˜å—å·ï¼Œå¦‚æœè·å–é¢„è¯»å—å·éœ€è¦é¢å¤–çš„ä¸€æ¬¡foré—´æ¥ç´¢å¼•å—çš„IOï¼Œä¸åˆç®—ï¼Œæ”¾å¼ƒ */
 		Inode::rablock = 0;
-		/* Èç¹ûÔ¤¶Á¿éºÅ²»ÊÇ×îºóÒ»¸ö¼ä½ÓË÷Òı¿é£¬»ñÈ¡Ô¤¶Á¿éºÅ */
-		if (index + 1 < Inode::ADDRESS_PER_INDEX_BLOCK)
+		if( index + 1 < Inode::ADDRESS_PER_INDEX_BLOCK)
 		{
-			/* ¶Á³ö´æ´¢¼ä½ÓË÷Òı±íµÄ×Ö·û¿é */
 			Inode::rablock = iTable[index + 1];
 		}
-		return phyBlkno; /* ·µ»ØÔ¤¶Á¿é¶ÔÓ¦µÄÎïÀíÅÌ¿éºÅ */
+		return phyBlkno;
 	}
 }
 
-/*¶ÔÌØÊâ×Ö·ûÉè±¸¡¢¿éÉè±¸ÎÄ¼ş£¬µ÷ÓÃ¸ÃÉè±¸×¢²áÔÚ¿éÉè±¸¿ª¹Ø±íÖĞµÄÉè±¸³õÊ¼»¯³ÌĞò*/
-void Inode::OpenI(int mode)
-{
-	short dev;													   /* Éè±¸ºÅ */
-	DeviceManager &devMgr = Kernel::Instance().GetDeviceManager(); /* Éè±¸¹ÜÀíÆ÷ */
-	User &u = Kernel::Instance().GetUser();						   /* ÓÃ»§¹ÜÀíÆ÷ */
-
-	/*
-	 * ¶ÔÓÚÌØÊâ¿éÉè±¸¡¢×Ö·ûÉè±¸ÎÄ¼ş£¬i_addr[]²»ÔÙÊÇ
-	 * ´ÅÅÌ¿éºÅË÷Òı±í£¬addr[0]ÖĞ´æ·ÅÁËÉè±¸ºÅdev
-	 */
-	dev = this->i_addr[0]; /* »ñÈ¡Éè±¸ºÅ */
-
-	/* ÌáÈ¡Ö÷Éè±¸ºÅ */
-	short major = Utility::GetMajor(dev); /* ÌáÈ¡Ö÷Éè±¸ºÅ */
-
-	/* ¸ù¾İÎÄ¼şÀàĞÍ£¬µ÷ÓÃÏàÓ¦µÄÉè±¸³õÊ¼»¯³ÌĞò */
-	switch (this->i_mode & Inode::IFMT)
-	{
-	case Inode::IFCHR: /* ×Ö·ûÉè±¸ÌØÊâÀàĞÍÎÄ¼ş */
-		if (major >= devMgr.GetNChrDev())
-		{
-			u.u_error = User::ENXIO; /* no such device */
-			return;
-		}
-		devMgr.GetCharDevice(major).Open(dev, mode);
-		break;
-
-	case Inode::IFBLK: /* ¿éÉè±¸ÌØÊâÀàĞÍÎÄ¼ş */
-		/* ¼ì²éÉè±¸ºÅÊÇ·ñ³¬³öÏµÍ³ÖĞ¿éÉè±¸ÊıÁ¿ */
-		if (major >= devMgr.GetNBlkDev())
-		{
-			u.u_error = User::ENXIO; /* no such device */
-			return;
-		}
-		/* ¸ù¾İÖ÷Éè±¸ºÅ»ñÈ¡¶ÔÓ¦µÄ¿éÉè±¸BlockDevice¶ÔÏóÒıÓÃ */
-		BlockDevice &bdev = devMgr.GetBlockDevice(major);
-		/* µ÷ÓÃ¸ÃÉè±¸µÄÌØ¶¨³õÊ¼»¯Âß¼­ */
-		bdev.Open(dev, mode);
-		break;
-	}
-
-	return;
-}
-
-/* ¶ÔÌØÊâ×Ö·ûÉè±¸¡¢¿éÉè±¸ÎÄ¼ş¡£Èç¹û¶Ô¸ÃÉè±¸µÄÒıÓÃ¼ÆÊıÎª0£¬Ôòµ÷ÓÃ¸ÃÉè±¸µÄ¹Ø±Õ³ÌĞò */
-void Inode::CloseI(int mode)
-{
-	short dev;													   /* Éè±¸ºÅ */
-	DeviceManager &devMgr = Kernel::Instance().GetDeviceManager(); /* Éè±¸¹ÜÀíÆ÷ */
-
-	/* addr[0]ÖĞ´æ·ÅÁËÉè±¸ºÅdev */
-	dev = this->i_addr[0]; /* »ñÈ¡Éè±¸ºÅ */
-
-	short major = Utility::GetMajor(dev); /* ÌáÈ¡Ö÷Éè±¸ºÅ */
-
-	/* ²»ÔÙÊ¹ÓÃ¸ÃÎÄ¼ş,¹Ø±ÕÌØÊâÎÄ¼ş */
-	if (this->i_count <= 1)
-	{
-		/* ¸ù¾İÎÄ¼şÀàĞÍ£¬µ÷ÓÃÏàÓ¦µÄÉè±¸¹Ø±Õ³ÌĞò */
-		switch (this->i_mode & Inode::IFMT)
-		{
-		case Inode::IFCHR:
-			devMgr.GetCharDevice(major).Close(dev, mode); /* µ÷ÓÃ¸ÃÉè±¸µÄÌØ¶¨¹Ø±ÕÂß¼­ */
-			break;
-
-		case Inode::IFBLK:
-			/* ¸ù¾İÖ÷Éè±¸ºÅ»ñÈ¡¶ÔÓ¦µÄ¿éÉè±¸BlockDevice¶ÔÏóÒıÓÃ */
-			BlockDevice &bdev = devMgr.GetBlockDevice(major);
-			/* µ÷ÓÃ¸ÃÉè±¸µÄÌØ¶¨¹Ø±ÕÂß¼­ */
-			bdev.Close(dev, mode);
-			break;
-		}
-	}
-}
-
-/* ±¾º¯ÊıÓÃÓÚ¸üĞÂÍâ´æInodeµÄ×îºóµÄ·ÃÎÊÊ±¼ä¡¢ĞŞ¸ÄÊ±¼ä*/
 void Inode::IUpdate(int time)
 {
-	Buf *pBuf;													   /* »º´æ¿éÖ¸Õë */
-	DiskInode dInode;											   /* ´ÅÅÌInode */
-	FileSystem &filesys = Kernel::Instance().GetFileSystem();	   /* ÎÄ¼şÏµÍ³ */
-	BufferManager &bufMgr = Kernel::Instance().GetBufferManager(); /* »º´æ¹ÜÀíÆ÷ */
+	Buf* pBuf;
+	DiskInode dInode;
+	FileSystem& filesys = Kernel::Instance().GetFileSystem();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 
-	/* µ±IUPDºÍIACC±êÖ¾Ö®Ò»±»ÉèÖÃ£¬²ÅĞèÒª¸üĞÂÏàÓ¦DiskInode
-	 * Ä¿Â¼ËÑË÷£¬²»»áÉèÖÃËùÍ¾¾¶µÄÄ¿Â¼ÎÄ¼şµÄIACCºÍIUPD±êÖ¾ */
-	if ((this->i_flag & (Inode::IUPD | Inode::IACC)) != 0)
+	/* å½“IUPDå’ŒIACCæ ‡å¿—ä¹‹ä¸€è¢«è®¾ç½®ï¼Œæ‰éœ€è¦æ›´æ–°ç›¸åº”DiskInode
+	 * ç›®å½•æœç´¢ï¼Œä¸ä¼šè®¾ç½®æ‰€é€”å¾„çš„ç›®å½•æ–‡ä»¶çš„IACCå’ŒIUPDæ ‡å¿— */
+	if( (this->i_flag & (Inode::IUPD | Inode::IACC))!= 0 )
 	{
-		if (filesys.GetFS(this->i_dev)->s_ronly != 0)
+		if( filesys.GetFS()->s_ronly != 0 )
 		{
-			/* Èç¹û¸ÃÎÄ¼şÏµÍ³Ö»¶Á */
+			/* å¦‚æœè¯¥æ–‡ä»¶ç³»ç»Ÿåªè¯» */
 			return;
 		}
 
-		/* µËÈØµÄ×¢ÊÍ£ºÔÚ»º´æ³ØÖĞÕÒµ½°üº¬±¾i½Úµã£¨this->i_number£©µÄ»º´æ¿é
-		 * ÕâÊÇÒ»¸öÉÏËøµÄ»º´æ¿é£¬±¾¶Î´úÂëÖĞµÄBwrite()ÔÚ½«»º´æ¿éĞ´»Ø´ÅÅÌºó»áÊÍ·Å¸Ã»º´æ¿é¡£
-		 * ½«¸Ã´æ·Å¸ÃDiskInodeµÄ×Ö·û¿é¶ÁÈë»º³åÇø */
-		pBuf = bufMgr.Bread(this->i_dev, FileSystem::INODE_ZONE_START_SECTOR + this->i_number / FileSystem::INODE_NUMBER_PER_SECTOR); /* ¶ÁÈë°üº¬¸ÃInodeµÄ»º´æ¿é */
+		/* é‚“è“‰çš„æ³¨é‡Šï¼šåœ¨ç¼“å­˜æ± ä¸­æ‰¾åˆ°åŒ…å«æœ¬ièŠ‚ç‚¹ï¼ˆthis->i_numberï¼‰çš„ç¼“å­˜å—
+		 * è¿™æ˜¯ä¸€ä¸ªä¸Šé”çš„ç¼“å­˜å—ï¼Œæœ¬æ®µä»£ç ä¸­çš„Bwrite()åœ¨å°†ç¼“å­˜å—å†™å›ç£ç›˜åä¼šé‡Šæ”¾è¯¥ç¼“å­˜å—ã€‚
+		 * å°†è¯¥å­˜æ”¾è¯¥DiskInodeçš„å­—ç¬¦å—è¯»å…¥ç¼“å†²åŒº */
+		pBuf = bufMgr.Bread(FileSystem::INODE_ZONE_START_SECTOR + this->i_number / FileSystem::INODE_NUMBER_PER_SECTOR);
 
-		/* ½«ÄÚ´æInode¸±±¾ÖĞµÄĞÅÏ¢¸´ÖÆµ½dInodeÖĞ£¬È»ºó½«dInode¸²¸Ç»º´æÖĞ¾ÉµÄÍâ´æInode */
-		dInode.d_mode = this->i_mode;	/* ÎÄ¼şÀàĞÍºÍ·ÃÎÊÈ¨ÏŞ */
-		dInode.d_nlink = this->i_nlink; /* Á´½ÓÊı */
-		dInode.d_uid = this->i_uid;		/* ÎÄ¼şËùÓĞÕßµÄÓÃ»§±êÊ¶·û */
-		dInode.d_gid = this->i_gid;		/* ÎÄ¼şËùÓĞÕßµÄ×é±êÊ¶·û */
-		dInode.d_size = this->i_size;	/* ÎÄ¼ş³¤¶È */
+		/* å°†å†…å­˜Inodeå‰¯æœ¬ä¸­çš„ä¿¡æ¯å¤åˆ¶åˆ°dInodeä¸­ï¼Œç„¶åå°†dInodeè¦†ç›–ç¼“å­˜ä¸­æ—§çš„å¤–å­˜Inode */
+		dInode.d_mode = this->i_mode;
+		dInode.d_nlink = this->i_nlink;
+		dInode.d_uid = this->i_uid;
+		dInode.d_gid = this->i_gid;
+		dInode.d_size = this->i_size;
 		for (int i = 0; i < 10; i++)
 		{
-			dInode.d_addr[i] = this->i_addr[i]; /* ÎÄ¼şÕ¼ÓÃµÄ´ÅÅÌ¿éºÅ */
+			dInode.d_addr[i] = this->i_addr[i];
 		}
 		if (this->i_flag & Inode::IACC)
 		{
-			/* ¸üĞÂ×îºó·ÃÎÊÊ±¼ä */
+			/* æ›´æ–°æœ€åè®¿é—®æ—¶é—´ */
 			dInode.d_atime = time;
 		}
 		if (this->i_flag & Inode::IUPD)
 		{
-			/* ¸üĞÂ×îºó·ÃÎÊÊ±¼ä */
+			/* æ›´æ–°æœ€åè®¿é—®æ—¶é—´ */
 			dInode.d_mtime = time;
 		}
 
-		/* ½«pÖ¸Ïò»º´æÇøÖĞ¾ÉÍâ´æInodeµÄÆ«ÒÆÎ»ÖÃ */
-		unsigned char *p = pBuf->b_addr + (this->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
-		DiskInode *pNode = &dInode;
+		/* å°†pæŒ‡å‘ç¼“å­˜åŒºä¸­æ—§å¤–å­˜Inodeçš„åç§»ä½ç½® */
+		unsigned char* p = pBuf->b_addr + (this->i_number % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
+		DiskInode* pNode = &dInode;
 
-		/* ÓÃdInodeÖĞµÄĞÂÊı¾İ¸²¸Ç»º´æÖĞµÄ¾ÉÍâ´æInode */
-		Utility::DWordCopy((int *)pNode, (int *)p, sizeof(DiskInode) / sizeof(int));
-
-		/* ½«»º´æĞ´»ØÖÁ´ÅÅÌ£¬´ïµ½¸üĞÂ¾ÉÍâ´æInodeµÄÄ¿µÄ */
+		/* ç”¨dInodeä¸­çš„æ–°æ•°æ®è¦†ç›–ç¼“å­˜ä¸­çš„æ—§å¤–å­˜Inode */
+		//Utility::DWordCopy( (int *)pNode, (int *)p, sizeof(DiskInode)/sizeof(int) );
+		memcpy(p, pNode, sizeof(DiskInode));
+		// *pNode = *(DiskInode*)p;
+		/* å°†ç¼“å­˜å†™å›è‡³ç£ç›˜ï¼Œè¾¾åˆ°æ›´æ–°æ—§å¤–å­˜Inodeçš„ç›®çš„ */
 		bufMgr.Bwrite(pBuf);
 	}
 }
-/* ±¾º¯ÊıÓÃÓÚÊÍ·ÅInodeËùÕ¼ÓÃµÄ´ÅÅÌ¿é */
+
 void Inode::ITrunc()
 {
-	/* ¾­ÓÉ´ÅÅÌ¸ßËÙ»º´æ¶ÁÈ¡´æ·ÅÒ»´Î¼ä½Ó¡¢Á½´Î¼ä½ÓË÷Òı±íµÄ´ÅÅÌ¿é */
-	BufferManager &bm = Kernel::Instance().GetBufferManager();
-	/* »ñÈ¡g_FileSystem¶ÔÏóµÄÒıÓÃ£¬Ö´ĞĞÊÍ·Å´ÅÅÌ¿éµÄ²Ù×÷ */
-	FileSystem &filesys = Kernel::Instance().GetFileSystem();
+	/* ç»ç”±ç£ç›˜é«˜é€Ÿç¼“å­˜è¯»å–å­˜æ”¾ä¸€æ¬¡é—´æ¥ã€ä¸¤æ¬¡é—´æ¥ç´¢å¼•è¡¨çš„ç£ç›˜å— */
+	BufferManager& bm = Kernel::Instance().GetBufferManager();
+	/* è·å–g_FileSystemå¯¹è±¡çš„å¼•ç”¨ï¼Œæ‰§è¡Œé‡Šæ”¾ç£ç›˜å—çš„æ“ä½œ */
+	FileSystem& filesys = Kernel::Instance().GetFileSystem();
 
-	/* Èç¹ûÊÇ×Ö·ûÉè±¸»òÕß¿éÉè±¸ÔòÍË³ö */
-	if (this->i_mode & (Inode::IFCHR & Inode::IFBLK))
-	{
-		return;
-	}
+	/* å¦‚æœæ˜¯å­—ç¬¦è®¾å¤‡æˆ–è€…å—è®¾å¤‡åˆ™é€€å‡º */
+	// if( this->i_mode & (Inode::IFCHR & Inode::IFBLK) )
+	// {
+	// 	return;
+	// }
 
-	/* ²ÉÓÃFILO·½Ê½ÊÍ·Å£¬ÒÔ¾¡Á¿Ê¹µÃSuperBlockÖĞ¼ÇÂ¼µÄ¿ÕÏĞÅÌ¿éºÅÁ¬Ğø¡£
+	/* é‡‡ç”¨FILOæ–¹å¼é‡Šæ”¾ï¼Œä»¥å°½é‡ä½¿å¾—SuperBlockä¸­è®°å½•çš„ç©ºé—²ç›˜å—å·è¿ç»­ã€‚
+	 * 
+	 * Unix V6++çš„æ–‡ä»¶ç´¢å¼•ç»“æ„ï¼š(å°å‹ã€å¤§å‹å’Œå·¨å‹æ–‡ä»¶)
+	 * (1) i_addr[0] - i_addr[5]ä¸ºç›´æ¥ç´¢å¼•è¡¨ï¼Œæ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯0 - 6ä¸ªç›˜å—ï¼›
+	 * 
+	 * (2) i_addr[6] - i_addr[7]å­˜æ”¾ä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ¯ç£ç›˜å—
+	 * ä¸Šå­˜æ”¾128ä¸ªæ–‡ä»¶æ•°æ®ç›˜å—å·ï¼Œæ­¤ç±»æ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯7 - (128 * 2 + 6)ä¸ªç›˜å—ï¼›
 	 *
-	 * Unix V6++µÄÎÄ¼şË÷Òı½á¹¹£º(Ğ¡ĞÍ¡¢´óĞÍºÍ¾ŞĞÍÎÄ¼ş)
-	 * (1) i_addr[0] - i_addr[5]ÎªÖ±½ÓË÷Òı±í£¬ÎÄ¼ş³¤¶È·¶Î§ÊÇ0 - 6¸öÅÌ¿é£»
-	 *
-	 * (2) i_addr[6] - i_addr[7]´æ·ÅÒ»´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬Ã¿´ÅÅÌ¿é
-	 * ÉÏ´æ·Å128¸öÎÄ¼şÊı¾İÅÌ¿éºÅ£¬´ËÀàÎÄ¼ş³¤¶È·¶Î§ÊÇ7 - (128 * 2 + 6)¸öÅÌ¿é£»
-	 *
-	 * (3) i_addr[8] - i_addr[9]´æ·Å¶ş´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬Ã¿¸ö¶ş´Î¼ä½Ó
-	 * Ë÷Òı±í¼ÇÂ¼128¸öÒ»´Î¼ä½ÓË÷Òı±íËùÔÚ´ÅÅÌ¿éºÅ£¬´ËÀàÎÄ¼ş³¤¶È·¶Î§ÊÇ
+	 * (3) i_addr[8] - i_addr[9]å­˜æ”¾äºŒæ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ¯ä¸ªäºŒæ¬¡é—´æ¥
+	 * ç´¢å¼•è¡¨è®°å½•128ä¸ªä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨æ‰€åœ¨ç£ç›˜å—å·ï¼Œæ­¤ç±»æ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯
 	 * (128 * 2 + 6 ) < size <= (128 * 128 * 2 + 128 * 2 + 6)
 	 */
-	for (int i = 9; i >= 0; i--) /* ´Ói_addr[9]µ½i_addr[0] */
+	for(int i = 9; i >= 0; i--)		/* ä»i_addr[9]åˆ°i_addr[0] */
 	{
-		/* Èç¹ûi_addr[]ÖĞµÚiÏî´æÔÚË÷Òı */
-		if (this->i_addr[i] != 0)
+		/* å¦‚æœi_addr[]ä¸­ç¬¬ié¡¹å­˜åœ¨ç´¢å¼• */
+		if( this->i_addr[i] != 0 )
 		{
-			/* Èç¹ûÊÇi_addr[]ÖĞµÄÒ»´Î¼ä½Ó¡¢Á½´Î¼ä½ÓË÷ÒıÏî */
-			if (i >= 6 && i <= 9)
+			/* å¦‚æœæ˜¯i_addr[]ä¸­çš„ä¸€æ¬¡é—´æ¥ã€ä¸¤æ¬¡é—´æ¥ç´¢å¼•é¡¹ */
+			if( i >= 6 && i <= 9 )
 			{
-				/* ½«¼ä½ÓË÷Òı±í¶ÁÈë»º´æ */
-				Buf *pFirstBuf = bm.Bread(this->i_dev, this->i_addr[i]);
-				/* »ñÈ¡»º³åÇøÊ×Ö· */
-				int *pFirst = (int *)pFirstBuf->b_addr;
+				/* å°†é—´æ¥ç´¢å¼•è¡¨è¯»å…¥ç¼“å­˜ */
+				Buf* pFirstBuf = bm.Bread(this->i_addr[i]);
+				/* è·å–ç¼“å†²åŒºé¦–å€ */
+				int* pFirst = (int *)pFirstBuf->b_addr;
 
-				/* Ã¿ÕÅ¼ä½ÓË÷Òı±í¼ÇÂ¼ 512/sizeof(int) = 128¸ö´ÅÅÌ¿éºÅ£¬±éÀúÕâÈ«²¿128¸ö´ÅÅÌ¿é */
-				for (int j = 128 - 1; j >= 0; j--)
+				/* æ¯å¼ é—´æ¥ç´¢å¼•è¡¨è®°å½• 512/sizeof(int) = 128ä¸ªç£ç›˜å—å·ï¼Œéå†è¿™å…¨éƒ¨128ä¸ªç£ç›˜å— */
+				for(int j = 128 - 1; j >= 0; j--)
 				{
-					if (pFirst[j] != 0) /* Èç¹û¸ÃÏî´æÔÚË÷Òı */
+					if( pFirst[j] != 0)	/* å¦‚æœè¯¥é¡¹å­˜åœ¨ç´¢å¼• */
 					{
-						/*
-						 * Èç¹ûÊÇÁ½´Î¼ä½ÓË÷Òı±í£¬i_addr[8]»òi_addr[9]Ïî£¬
-						 * ÄÇÃ´¸Ã×Ö·û¿é¼ÇÂ¼µÄÊÇ128¸öÒ»´Î¼ä½ÓË÷Òı±í´æ·ÅµÄ´ÅÅÌ¿éºÅ
+						/* 
+						 * å¦‚æœæ˜¯ä¸¤æ¬¡é—´æ¥ç´¢å¼•è¡¨ï¼Œi_addr[8]æˆ–i_addr[9]é¡¹ï¼Œ
+						 * é‚£ä¹ˆè¯¥å­—ç¬¦å—è®°å½•çš„æ˜¯128ä¸ªä¸€æ¬¡é—´æ¥ç´¢å¼•è¡¨å­˜æ”¾çš„ç£ç›˜å—å·
 						 */
-						if (i >= 8 && i <= 9)
+						if( i >= 8 && i <= 9)
 						{
-							Buf *pSecondBuf = bm.Bread(this->i_dev, pFirst[j]); /* ½«Ò»´Î¼ä½ÓË÷Òı±í¶ÁÈë»º´æ,Í¨¹ıÑ­»·±éÀú½øĞĞÊÍ·Å */
-							int *pSecond = (int *)pSecondBuf->b_addr;			/* »ñÈ¡»º³åÇøÊ×Ö· */
+							Buf* pSecondBuf = bm.Bread(pFirst[j]);
+							int* pSecond = (int *)pSecondBuf->b_addr;
 
-							for (int k = 128 - 1; k >= 0; k--)
+							for(int k = 128 - 1; k >= 0; k--)
 							{
-								if (pSecond[k] != 0)
+								if(pSecond[k] != 0)
 								{
-									/* ÊÍ·ÅÖ¸¶¨µÄ´ÅÅÌ¿é */
-									filesys.Free(this->i_dev, pSecond[k]);
+									/* é‡Šæ”¾æŒ‡å®šçš„ç£ç›˜å— */
+									filesys.Free( pSecond[k]);
 								}
 							}
-							/* »º´æÊ¹ÓÃÍê±Ï£¬ÊÍ·ÅÒÔ±ã±»ÆäËü½ø³ÌÊ¹ÓÃ */
+							/* ç¼“å­˜ä½¿ç”¨å®Œæ¯•ï¼Œé‡Šæ”¾ä»¥ä¾¿è¢«å…¶å®ƒè¿›ç¨‹ä½¿ç”¨ */
 							bm.Brelse(pSecondBuf);
 						}
-						/* ÊÍ·ÅÖ¸¶¨µÄ´ÅÅÌ¿é */
-						filesys.Free(this->i_dev, pFirst[j]);
+						filesys.Free(pFirst[j]);
 					}
 				}
-				/* »º´æÊ¹ÓÃÍê±Ï£¬ÊÍ·ÅÒÔ±ã±»ÆäËü½ø³ÌÊ¹ÓÃ */
 				bm.Brelse(pFirstBuf);
 			}
-			/* ÊÍ·ÅË÷Òı±í±¾ÉíÕ¼ÓÃµÄ´ÅÅÌ¿é */
-			filesys.Free(this->i_dev, this->i_addr[i]);
-			/* 0±íÊ¾¸ÃÏî²»°üº¬Ë÷Òı */
+			/* é‡Šæ”¾ç´¢å¼•è¡¨æœ¬èº«å ç”¨çš„ç£ç›˜å— */
+			filesys.Free(this->i_addr[i]);
+			/* 0è¡¨ç¤ºè¯¥é¡¹ä¸åŒ…å«ç´¢å¼• */
 			this->i_addr[i] = 0;
 		}
 	}
-
-	/* ÅÌ¿éÊÍ·ÅÍê±Ï£¬ÎÄ¼ş´óĞ¡ÇåÁã */
+	
+	/* ç›˜å—é‡Šæ”¾å®Œæ¯•ï¼Œæ–‡ä»¶å¤§å°æ¸…é›¶ */
 	this->i_size = 0;
-	/* ÔöÉèIUPD±êÖ¾Î»£¬±íÊ¾´ËÄÚ´æInodeĞèÒªÍ¬²½µ½ÏàÓ¦Íâ´æInode */
+	/* å¢è®¾IUPDæ ‡å¿—ä½ï¼Œè¡¨ç¤ºæ­¤å†…å­˜Inodeéœ€è¦åŒæ­¥åˆ°ç›¸åº”å¤–å­˜Inode */
 	this->i_flag |= Inode::IUPD;
-	/* Çå´óÎÄ¼ş±êÖ¾ ºÍÔ­À´µÄRWXRWXRWX±ÈÌØ*/
+	/* æ¸…å¤§æ–‡ä»¶æ ‡å¿— å’ŒåŸæ¥çš„RWXRWXRWXæ¯”ç‰¹*/
 	this->i_mode &= ~(Inode::ILARG & Inode::IRWXU & Inode::IRWXG & Inode::IRWXO);
-	/* ÊÍ·ÅÄÚ´æInode */
 	this->i_nlink = 1;
 }
 
-/* ±¾º¯ÊıÓÃÓÚ¶ÔPipe»òÕßInode½âËø£¬²¢ÇÒ»½ĞÑÒòµÈ´ıËø¶øË¯ÃßµÄ½ø³Ì*/
 void Inode::NFrele()
 {
-	/* ½âËøpipe»òInode,²¢ÇÒ»½ĞÑÏàÓ¦½ø³Ì */
+	/* è§£é”pipeæˆ–Inode,å¹¶ä¸”å”¤é†’ç›¸åº”è¿›ç¨‹ */
 	this->i_flag &= ~Inode::ILOCK;
-
-	/* Èç¹ûÓĞ½ø³ÌÔÚµÈ´ı¸ÃInode£¬Ôò»½ĞÑËüÃÇ */
-	if (this->i_flag & Inode::IWANT)
-	{
-		/* Çå³ıµÈ´ı±êÖ¾Î» */
-		this->i_flag &= ~Inode::IWANT;
-		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)this); /* »½ĞÑËùÓĞµÈ´ı¸ÃInodeµÄ½ø³Ì */
-	}
 }
 
-/*¶ÔPipeÉÏËø£¬Èç¹ûPipeÒÑ¾­±»ÉÏËø£¬ÔòÔöÉèIWANT±êÖ¾²¢Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø*/
 void Inode::NFlock()
 {
-	User &u = Kernel::Instance().GetUser(); /* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
-
-	/* Èç¹ûPipeÒÑ¾­±»ÉÏËø£¬ÔòÔöÉèIWANT±êÖ¾²¢Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø */
-	while (this->i_flag & Inode::ILOCK)
-	{
-		this->i_flag |= Inode::IWANT;								   /* ÔöÉèIWANT±êÖ¾ */
-		u.u_procp->Sleep((unsigned long)this, ProcessManager::PRIBIO); /* Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø */
-	}
-	this->i_flag |= Inode::ILOCK; /* ÔöÉèILOCK±êÖ¾ */
+	/* é”å®špipeæˆ–Inode */
+	this->i_flag |= Inode::ILOCK;
 }
 
-/* ±¾º¯ÊıÓÃÓÚ¶ÔPipe½âËø£¬²¢ÇÒ»½ĞÑÒòµÈ´ıËø¶øË¯ÃßµÄ½ø³Ì*/
-void Inode::Prele()
-{
-	/* ½âËøpipe»òInode,²¢ÇÒ»½ĞÑÏàÓ¦½ø³Ì */
-	this->i_flag &= ~Inode::ILOCK;
-
-	if (this->i_flag & Inode::IWANT)
-	{
-		/* Èç¹ûÓĞ½ø³ÌÔÚµÈ´ı¸ÃInode£¬Ôò»½ĞÑËüÃÇ */
-		this->i_flag &= ~Inode::IWANT;										   /* Çå³ıµÈ´ı±êÖ¾Î» */
-		Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)this); /* »½ĞÑËùÓĞµÈ´ı¸ÃInodeµÄ½ø³Ì */
-	}
-}
-
-/*¶ÔPipeÉÏËø£¬Èç¹ûPipeÒÑ¾­±»ÉÏËø£¬ÔòÔöÉèIWANT±êÖ¾²¢Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø*/
-void Inode::Plock()
-{
-	/* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
-	User &u = Kernel::Instance().GetUser();
-
-	/* Èç¹ûPipeÒÑ¾­±»ÉÏËø£¬ÔòÔöÉèIWANT±êÖ¾²¢Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø */
-	while (this->i_flag & Inode::ILOCK)
-	{
-		this->i_flag |= Inode::IWANT; /* ÔöÉèIWANT±êÖ¾ */
-		u.u_procp->Sleep((unsigned long)this, ProcessManager::PPIPE);
-		/* Ë¯ÃßµÈ´ıÖ±ÖÁ½âËø,×¢Òâ´Ë´¦µÄË¯ÃßÔ­ÒòÎªPPIPE */
-	}
-	this->i_flag |= Inode::ILOCK; /* ÔöÉèILOCK±êÖ¾ */
-}
-
-/*±¾º¯ÊıÓÃÓÚÇå¿ÕInode¶ÔÏóÖĞµÄÊı¾İ£¬µ«²»°üÀ¨i_dev, i_number, i_flag, i_count*/
 void Inode::Clean()
 {
-	/*
-	 * Inode::Clean()ÌØ¶¨ÓÃÓÚIAlloc()ÖĞÇå¿ÕĞÂ·ÖÅäDiskInodeµÄÔ­ÓĞÊı¾İ£¬
-	 * ¼´¾ÉÎÄ¼şĞÅÏ¢¡£Clean()º¯ÊıÖĞ²»Ó¦µ±Çå³ıi_dev, i_number, i_flag, i_count,
-	 * ÕâÊÇÊôÓÚÄÚ´æInode¶ø·ÇDiskInode°üº¬µÄ¾ÉÎÄ¼şĞÅÏ¢£¬¶øInodeÀà¹¹Ôìº¯ÊıĞèÒª
-	 * ½«Æä³õÊ¼»¯ÎªÎŞĞ§Öµ¡£
+	/* 
+	 * Inode::Clean()ç‰¹å®šç”¨äºIAlloc()ä¸­æ¸…ç©ºæ–°åˆ†é…DiskInodeçš„åŸæœ‰æ•°æ®ï¼Œ
+	 * å³æ—§æ–‡ä»¶ä¿¡æ¯ã€‚Clean()å‡½æ•°ä¸­ä¸åº”å½“æ¸…é™¤i_dev, i_number, i_flag, i_count,
+	 * è¿™æ˜¯å±äºå†…å­˜Inodeè€ŒéDiskInodeåŒ…å«çš„æ—§æ–‡ä»¶ä¿¡æ¯ï¼Œè€ŒInodeç±»æ„é€ å‡½æ•°éœ€è¦
+	 * å°†å…¶åˆå§‹åŒ–ä¸ºæ— æ•ˆå€¼ã€‚
 	 */
 
 	// this->i_flag = 0;
-	this->i_mode = 0; /* Çå¿ÕÎÄ¼şÀàĞÍºÍ·ÃÎÊÈ¨ÏŞ */
-	// this->i_count = 0;
-	this->i_nlink = 0; /* Çå¿ÕÎÄ¼şÁ´½ÓÊı */
-	// this->i_dev = -1;
-	// this->i_number = -1;
-	this->i_uid = -1;	/* Çå¿ÕÎÄ¼şËùÓĞÕß */
-	this->i_gid = -1;	/* Çå¿ÕÎÄ¼şËùÓĞÕß×é */
-	this->i_size = 0;	/* Çå¿ÕÎÄ¼ş´óĞ¡ */
-	this->i_lastr = -1; /* Çå¿Õ×îºóÒ»´Î¶ÁÈ¡µÄÎÄ¼ş¿éºÅ */
-	for (int i = 0; i < 10; i++)
+	this->i_mode = 0;
+	//this->i_count = 0;
+	this->i_nlink = 0;
+	//this->i_dev = -1;
+	//this->i_number = -1;
+	this->i_uid = -1;
+	this->i_gid = -1;
+	this->i_size = 0;
+	this->i_lastr = -1;
+	for(int i = 0; i < 10; i++)
 	{
-		this->i_addr[i] = 0; /* Çå¿ÕÎÄ¼şÊı¾İ¿éºÅ */
+		this->i_addr[i] = 0;
 	}
 }
 
-/* ±¾º¯ÊıÓÃÓÚ½«ÄÚ´æInodeÖĞµÄĞÅÏ¢¿½±´µ½Íâ´æInodeÖĞ */
 void Inode::ICopy(Buf *bp, int inumber)
 {
-	DiskInode dInode;			/* ÁÙÊ±±äÁ¿£¬ÓÃÓÚ´æ·ÅÍâ´æInodeĞÅÏ¢ */
-	DiskInode *pNode = &dInode; /* Ö¸ÏòÁÙÊ±±äÁ¿dInode */
+	DiskInode dInode;
+	DiskInode* pNode = &dInode;
 
-	/* ½«pÖ¸Ïò»º´æÇøÖĞ±àºÅÎªinumberÍâ´æInodeµÄÆ«ÒÆÎ»ÖÃ */
-	unsigned char *p = bp->b_addr + (inumber % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
-	/* ½«»º´æÖĞÍâ´æInodeÊı¾İ¿½±´µ½ÁÙÊ±±äÁ¿dInodeÖĞ£¬°´4×Ö½Ú¿½±´ */
-	Utility::DWordCopy((int *)p, (int *)pNode, sizeof(DiskInode) / sizeof(int));
+	/* å°†pæŒ‡å‘ç¼“å­˜åŒºä¸­ç¼–å·ä¸ºinumberå¤–å­˜Inodeçš„åç§»ä½ç½® */
+	unsigned char* p = bp->b_addr + (inumber % FileSystem::INODE_NUMBER_PER_SECTOR) * sizeof(DiskInode);
+	/* å°†ç¼“å­˜ä¸­å¤–å­˜Inodeæ•°æ®æ‹·è´åˆ°ä¸´æ—¶å˜é‡dInodeä¸­ï¼ŒæŒ‰4å­—èŠ‚æ‹·è´ */
+	memcpy(pNode, p, sizeof(DiskInode));
 
-	/* ½«Íâ´æInode±äÁ¿dInodeÖĞĞÅÏ¢¸´ÖÆµ½ÄÚ´æInodeÖĞ */
-	this->i_mode = dInode.d_mode;	/* ÎÄ¼şÀàĞÍºÍ·ÃÎÊÈ¨ÏŞ */
-	this->i_nlink = dInode.d_nlink; /* ÎÄ¼şÁ´½ÓÊı */
-	this->i_uid = dInode.d_uid;		/* ÎÄ¼şËùÓĞÕß */
-	this->i_gid = dInode.d_gid;		/* ÎÄ¼şËùÓĞÕß×é */
-	this->i_size = dInode.d_size;	/* ÎÄ¼ş´óĞ¡ */
-	for (int i = 0; i < 10; i++)
+	/* å°†å¤–å­˜Inodeå˜é‡dInodeä¸­ä¿¡æ¯å¤åˆ¶åˆ°å†…å­˜Inodeä¸­ */
+	this->i_mode = dInode.d_mode;
+	this->i_nlink = dInode.d_nlink;
+	this->i_uid = dInode.d_uid;
+	this->i_gid = dInode.d_gid;
+	this->i_size = dInode.d_size;
+	for(int i = 0; i < 10; i++)
 	{
-		this->i_addr[i] = dInode.d_addr[i]; /* ÎÄ¼şÊı¾İ¿éºÅ */
+		this->i_addr[i] = dInode.d_addr[i];
 	}
 }
 
+
 /*============================class DiskInode=================================*/
-/*
- * Íâ´æË÷Òı½Úµã(DiskINode)µÄ¶¨Òå
- * Íâ´æInodeÎ»ÓÚÎÄ¼ş´æ´¢Éè±¸ÉÏµÄ
- * Íâ´æInodeÇøÖĞ¡£Ã¿¸öÎÄ¼şÓĞÎ¨Ò»¶ÔÓ¦
- * µÄÍâ´æInode£¬Æä×÷ÓÃÊÇ¼ÇÂ¼ÁË¸ÃÎÄ¼ş
- * ¶ÔÓ¦µÄ¿ØÖÆĞÅÏ¢¡£
- * Íâ´æInodeÖĞĞí¶à×Ö¶ÎºÍÄÚ´æInodeÖĞ×Ö¶Î
- * Ïà¶ÔÓ¦¡£Íâ´æINode¶ÔÏó³¤¶ÈÎª64×Ö½Ú£¬
- * Ã¿¸ö´ÅÅÌ¿é¿ÉÒÔ´æ·Å512/64 = 8¸öÍâ´æInode
- */
-/* Íâ´æInode¹¹Ôìº¯ÊıÓÃÓÚ³õÊ¼»¯Õ»ÖĞÄÚ´æ¿Õ¼ä */
+
 DiskInode::DiskInode()
 {
-	/*
-	 * Èç¹ûDiskInodeÃ»ÓĞ¹¹Ôìº¯Êı£¬»á·¢ÉúÈçÏÂ½ÏÄÑ²ì¾õµÄ´íÎó£º
-	 * DiskInode×÷Îª¾Ö²¿±äÁ¿Õ¼¾İº¯ÊıStack FrameÖĞµÄÄÚ´æ¿Õ¼ä£¬µ«ÊÇ
-	 * Õâ¶Î¿Õ¼äÃ»ÓĞ±»ÕıÈ·³õÊ¼»¯£¬ÈÔ¾É±£Áô×ÅÏÈÇ°Õ»ÄÚÈİ£¬ÓÉÓÚ²¢²»ÊÇ
-	 * DiskInodeËùÓĞ×Ö¶Î¶¼»á±»¸üĞÂ£¬½«DiskInodeĞ´»Øµ½´ÅÅÌÉÏÊ±£¬¿ÉÄÜ
-	 * ½«ÏÈÇ°Õ»ÄÚÈİÒ»Í¬Ğ´»Ø£¬µ¼ÖÂĞ´»Ø½á¹û³öÏÖÄªÃûÆäÃîµÄÊı¾İ¡£
-	 * Òò´ËĞèÒªÔÚDiskInode¹¹Ôìº¯ÊıÖĞ½«ËùÓĞ×Ö¶Î³õÊ¼»¯ÎªÎŞĞ§Öµ¡£
+	/* 
+	 * å¦‚æœDiskInodeæ²¡æœ‰æ„é€ å‡½æ•°ï¼Œä¼šå‘ç”Ÿå¦‚ä¸‹è¾ƒéš¾å¯Ÿè§‰çš„é”™è¯¯ï¼š
+	 * DiskInodeä½œä¸ºå±€éƒ¨å˜é‡å æ®å‡½æ•°Stack Frameä¸­çš„å†…å­˜ç©ºé—´ï¼Œä½†æ˜¯
+	 * è¿™æ®µç©ºé—´æ²¡æœ‰è¢«æ­£ç¡®åˆå§‹åŒ–ï¼Œä»æ—§ä¿ç•™ç€å…ˆå‰æ ˆå†…å®¹ï¼Œç”±äºå¹¶ä¸æ˜¯
+	 * DiskInodeæ‰€æœ‰å­—æ®µéƒ½ä¼šè¢«æ›´æ–°ï¼Œå°†DiskInodeå†™å›åˆ°ç£ç›˜ä¸Šæ—¶ï¼Œå¯èƒ½
+	 * å°†å…ˆå‰æ ˆå†…å®¹ä¸€åŒå†™å›ï¼Œå¯¼è‡´å†™å›ç»“æœå‡ºç°è«åå…¶å¦™çš„æ•°æ®ã€‚
 	 */
-	this->d_mode = 0;  /* ÎÄ¼şÀàĞÍºÍ·ÃÎÊÈ¨ÏŞ */
-	this->d_nlink = 0; /* ÎÄ¼şÁ´½ÓÊı */
-	this->d_uid = -1;  /* ÎÄ¼şËùÓĞÕß */
-	this->d_gid = -1;  /* ÎÄ¼şËùÓĞÕß×é */
-	this->d_size = 0;  /* ÎÄ¼ş´óĞ¡ */
-	for (int i = 0; i < 10; i++)
+	this->d_mode = 0;
+	this->d_nlink = 0;
+	this->d_uid = -1;
+	this->d_gid = -1;
+	this->d_size = 0;
+	for(int i = 0; i < 10; i++)
 	{
-		this->d_addr[i] = 0; /* ÎÄ¼şÊı¾İ¿éºÅ */
+		this->d_addr[i] = 0;
 	}
-	this->d_atime = 0; /* ÎÄ¼ş×îºóÒ»´Î·ÃÎÊÊ±¼ä */
-	this->d_mtime = 0; /* ÎÄ¼ş×îºóÒ»´ÎĞŞ¸ÄÊ±¼ä */
+	this->d_atime = 0;
+	this->d_mtime = 0;
 }
 
 DiskInode::~DiskInode()
 {
-	// nothing to do here
+	//nothing to do here
 }

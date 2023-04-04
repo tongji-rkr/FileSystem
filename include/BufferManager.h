@@ -1,61 +1,46 @@
-/*
- * @Description: 
- * @Date: 2022-09-05 14:30:16
- * @LastEditTime: 2023-04-02 15:51:19
- */
 #ifndef BUFFER_MANAGER_H
 #define BUFFER_MANAGER_H
 
 #include "Buf.h"
-#include "DeviceManager.h"
 
 class BufferManager
 {
 public:
-	/* static const member */
-	static const int NBUF = 15;			/* »º´æ¿ØÖÆ¿é¡¢»º³åÇøµÄÊıÁ¿ */
-	static const int BUFFER_SIZE = 512; /* »º³åÇø´óĞ¡¡£ ÒÔ×Ö½ÚÎªµ¥Î» */
+    /* static const member */
+    static const int NBUF = 15;         /* ç¼“å­˜æ§åˆ¶å—ã€ç¼“å†²åŒºçš„æ•°é‡ */
+    static const int BUFFER_SIZE = 512; /* ç¼“å†²åŒºå¤§å°ã€‚ ä»¥å­—èŠ‚ä¸ºå•ä½ */
 
 public:
-	BufferManager();  // ¹¹Ôìº¯Êı
-	~BufferManager(); // Îö¹¹º¯Êı
+    BufferManager();            /* æ„é€ å‡½æ•° */
+    ~BufferManager();           /* ææ„å‡½æ•° */
 
-	void Initialize(); /* »º´æ¿ØÖÆ¿é¶ÓÁĞµÄ³õÊ¼»¯¡£½«»º´æ¿ØÖÆ¿éÖĞb_addrÖ¸ÏòÏàÓ¦»º³åÇøÊ×µØÖ·¡£*/
+    void Initialize();          /* åˆå§‹åŒ–ç¼“å­˜ç®¡ç†å™¨ */
+    Buf *GetBlk(int blkno);     /* ä»ç¼“å­˜ä¸­å–å¾—æŒ‡å®šå­—ç¬¦å— */
+    void Brelse(Buf *bp);       /* é‡Šæ”¾ç¼“å­˜ä¸­çš„æŒ‡å®šå­—ç¬¦å— */
 
-	Buf *GetBlk(short dev, int blkno); /* ÉêÇëÒ»¿é»º´æ£¬ÓÃÓÚ¶ÁĞ´Éè±¸devÉÏµÄ×Ö·û¿éblkno¡£*/
-	void Brelse(Buf *bp);			   /* ÊÍ·Å»º´æ¿ØÖÆ¿ébuf */
-	void IOWait(Buf *bp);			   /* Í¬²½·½Ê½I/O£¬µÈ´ıI/O²Ù×÷½áÊø */
-	void IODone(Buf *bp);			   /* I/O²Ù×÷½áÊøÉÆºó´¦Àí */
+    //è¯»å†™
+    Buf *Bread(int blkno);      /* è¯»æŒ‡å®šå­—ç¬¦å— */
+    void Bwrite(Buf *bp);       /* å†™æŒ‡å®šå­—ç¬¦å— */                            
+    void Bdwrite(Buf *bp);      /* å»¶è¿Ÿå†™æŒ‡å®šå­—ç¬¦å— */       
+    void Bawrite(Buf *bp);      /* å¼‚æ­¥å†™æŒ‡å®šå­—ç¬¦å— */   
 
-	Buf *Bread(short dev, int blkno);				 /* ¶ÁÒ»¸ö´ÅÅÌ¿é¡£devÎªÖ÷¡¢´ÎÉè±¸ºÅ£¬blknoÎªÄ¿±ê´ÅÅÌ¿éÂß¼­¿éºÅ¡£ */
-	Buf *Breada(short adev, int blkno, int rablkno); /* ¶ÁÒ»¸ö´ÅÅÌ¿é£¬´øÓĞÔ¤¶Á·½Ê½¡£
-													  * adevÎªÖ÷¡¢´ÎÉè±¸ºÅ¡£blknoÎªÄ¿±ê´ÅÅÌ¿éÂß¼­¿éºÅ£¬Í¬²½·½Ê½¶Áblkno¡£
-													  * rablknoÎªÔ¤¶Á´ÅÅÌ¿éÂß¼­¿éºÅ£¬Òì²½·½Ê½¶Árablkno¡£ */
-	void Bwrite(Buf *bp);							 /* Ğ´Ò»¸ö´ÅÅÌ¿é */
-	void Bdwrite(Buf *bp);							 /* ÑÓ³ÙĞ´´ÅÅÌ¿é */
-	void Bawrite(Buf *bp);							 /* Òì²½Ğ´´ÅÅÌ¿é */
+    void ClrBuf(Buf *bp);       /* æ¸…é™¤æŒ‡å®šç¼“å­˜æ§åˆ¶å—çš„æ ‡å¿—ä½ */
+    void Bflush();              /* å°†ç¼“å­˜ä¸­çš„æ‰€æœ‰ä¿®æ”¹è¿‡çš„å­—ç¬¦å—å†™å›ç£ç›˜ */
+    Buf &GetBFreeList();        /* è·å–è‡ªç”±ç¼“å­˜é˜Ÿåˆ—æ§åˆ¶å— */
 
-	void ClrBuf(Buf *bp);	/* Çå¿Õ»º³åÇøÄÚÈİ */
-	void Bflush(short dev); /* ½«devÖ¸¶¨Éè±¸¶ÓÁĞÖĞÑÓ³ÙĞ´µÄ»º´æÈ«²¿Êä³öµ½´ÅÅÌ */
-	bool Swap(int blkno, unsigned long addr, int count, enum Buf::BufFlag flag);
-	/* Swap I/O ÓÃÓÚ½ø³ÌÍ¼ÏñÔÚÄÚ´æºÍÅÌ½»»»ÇøÖ®¼ä´«Êä
-	 * blkno: ½»»»ÇøÖĞÅÌ¿éºÅ£»addr:  ½ø³ÌÍ¼Ïñ(´«ËÍ²¿·Ö)ÄÚ´æÆğÊ¼µØÖ·£»
-	 * count: ½øĞĞ´«Êä×Ö½ÚÊı£¬byteÎªµ¥Î»£»´«Êä·½Ïòflag: ÄÚ´æ->½»»»Çø or ½»»»Çø->ÄÚ´æ¡£ */
-	Buf &GetSwapBuf();	 /* »ñÈ¡½ø³ÌÍ¼Ïñ´«ËÍÇëÇó¿éBuf¶ÔÏóÒıÓÃ */
-	Buf &GetBFreeList(); /* »ñÈ¡×ÔÓÉ»º´æ¶ÓÁĞ¿ØÖÆ¿éBuf¶ÔÏóÒıÓÃ */
+    void SetP(char* mmapaddr);  /* è®¾ç½®mmapæ˜ å°„åˆ°å†…å­˜åçš„èµ·å§‹åœ°å€ */
+    char* GetP();               /* è·å–mmapæ˜ å°„åˆ°å†…å­˜åçš„èµ·å§‹åœ°å€ */
 
 private:
-	void GetError(Buf *bp);				/* »ñÈ¡I/O²Ù×÷ÖĞ·¢ÉúµÄ´íÎóĞÅÏ¢ */
-	void NotAvail(Buf *bp);				/* ´Ó×ÔÓÉ¶ÓÁĞÖĞÕªÏÂÖ¸¶¨µÄ»º´æ¿ØÖÆ¿ébuf */
-	Buf *InCore(short adev, int blkno); /* ¼ì²éÖ¸¶¨×Ö·û¿éÊÇ·ñÒÑÔÚ»º´æÖĞ */
+    void GetError(Buf *bp);     /* è·å–I/Oæ“ä½œä¸­å‘ç”Ÿçš„é”™è¯¯ä¿¡æ¯ */
+    void NotAvail(Buf *bp);     /* ä»è‡ªç”±é˜Ÿåˆ—ä¸­æ‘˜ä¸‹æŒ‡å®šçš„ç¼“å­˜æ§åˆ¶å—buf */
+    Buf *InCore(int blkno);     /* æ£€æŸ¥æŒ‡å®šå­—ç¬¦å—æ˜¯å¦å·²åœ¨ç¼“å­˜ä¸­ */
 
 private:
-	Buf bFreeList;							 /* ×ÔÓÉ»º´æ¶ÓÁĞ¿ØÖÆ¿é */
-	Buf SwBuf;								 /* ½ø³ÌÍ¼Ïñ´«ËÍÇëÇó¿é */
-	Buf m_Buf[NBUF];						 /* »º´æ¿ØÖÆ¿éÊı×é */
-	unsigned char Buffer[NBUF][BUFFER_SIZE]; /* »º³åÇøÊı×é */
-
-	DeviceManager *m_DeviceManager; /* Ö¸ÏòÉè±¸¹ÜÀíÄ£¿éÈ«¾Ö¶ÔÏó */
+    Buf bFreeList;                           /* è‡ªç”±ç¼“å­˜é˜Ÿåˆ—æ§åˆ¶å— */
+    Buf m_Buf[NBUF];                         /* ç¼“å­˜æ§åˆ¶å—æ•°ç»„ */
+    unsigned char Buffer[NBUF][BUFFER_SIZE]; /* ç¼“å†²åŒºæ•°ç»„ */
+	char *p;                                 /* mmapæ˜ å°„åˆ°å†…å­˜åçš„èµ·å§‹åœ°å€ */
 };
 
 #endif

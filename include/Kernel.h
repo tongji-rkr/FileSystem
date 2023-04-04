@@ -1,69 +1,42 @@
-/*
- * @Description: 
- * @Date: 2022-09-05 14:30:16
- * @LastEditTime: 2023-03-22 21:00:31
- */
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#include "PageManager.h"
-#include "ProcessManager.h"
-#include "KernelAllocator.h"
-#include "User.h"
-#include "BufferManager.h"
-#include "DeviceManager.h"
+#include "DiskDriver.h"
 #include "FileManager.h"
 #include "FileSystem.h"
-#include "SwapperManager.h"
+#include "BufferManager.h"
+#include "User.h"
+#include <string>
 
-/*
- * KernelÀàÓÃÓÚ·â×°ËùÓĞÄÚºËÏà¹ØµÄÈ«¾ÖÀàÊµÀı¶ÔÏó£¬
- * ÀıÈçPageManager, ProcessManagerµÈ¡£
- * 
- * KernelÀàÔÚÄÚ´æÖĞÎªµ¥ÌåÄ£Ê½£¬±£Ö¤ÄÚºËÖĞ·â×°¸÷ÄÚºË
- * Ä£¿éµÄ¶ÔÏó¶¼Ö»ÓĞÒ»¸ö¸±±¾¡£
- */
 class Kernel
 {
 public:
-	static const unsigned long USER_ADDRESS = 0x400000 - 0x1000 + 0xc0000000;	/* 0xC03FF000  user½á¹¹µÄÆğÊ¼ĞéµØÖ·*/
-	static const unsigned long USER_PAGE_INDEX = 1023;		/* USER_ADDRESS¶ÔÓ¦Ò³±íÏîÔÚPageTableÖĞµÄË÷Òı */
-
-public:
-	Kernel();	//¹¹Ôìº¯Êı
-	~Kernel();	//Îö¹¹º¯Êı
-	static Kernel& Instance();	//·µ»ØKernelÊµÀı
-	void Initialize();		/* ¸Ãº¯ÊıÍê³É³õÊ¼»¯ÄÚºË´ó²¿·ÖÊı¾İ½á¹¹µÄ³õÊ¼»¯ */
-
-	KernelPageManager& GetKernelPageManager();	//·µ»Øm_KernelPageManager
-	UserPageManager& GetUserPageManager();	//·µ»Øm_UserPageManager
-	ProcessManager& GetProcessManager();	//·µ»Øm_ProcessManager
-	KernelAllocator& GetKernelAllocator();	//·µ»Øm_ProcessManager
-	SwapperManager& GetSwapperManager();	//·µ»Øm_SwapperManager
-	BufferManager& GetBufferManager();	//·µ»Øm_BufferManager
-	DeviceManager& GetDeviceManager();	//·µ»Øm_DeviceManager
-	FileSystem& GetFileSystem();	//·µ»Øm_FileSystem
-	FileManager& GetFileManager();	//·µ»Øm_FileManager
-	User& GetUser();		/* »ñÈ¡µ±Ç°½ø³ÌµÄUser½á¹¹ */
+    Kernel();                           /* æ„é€ å‡½æ•° */
+    ~Kernel();                          /* ææ„å‡½æ•° */
+    void Initialize();                  /* åˆå§‹åŒ–å†…æ ¸ */
+    void Quit();                        /* é€€å‡ºå†…æ ¸ */
+    //æ¥å£å‡½æ•°
+    static Kernel& Instance();          /* è·å–å•ä½“å®ä¾‹ */
+    DiskDriver& GetDiskDriver();        /* è·å–ç£ç›˜é©±åŠ¨å™¨ */
+    BufferManager& GetBufferManager();  /* è·å–ç¼“å­˜ç®¡ç†å™¨ */
+    FileSystem& GetFileSystem();        /* è·å–æ–‡ä»¶ç³»ç»Ÿ */
+    FileManager& GetFileManager();      /* è·å–æ–‡ä»¶ç®¡ç†å™¨ */
+    User& GetUser();                    /* è·å–ç”¨æˆ· */
+private:
+    void InitDiskDriver();              /* åˆå§‹åŒ–ç£ç›˜é©±åŠ¨å™¨ */
+    void InitFileSystem();              /* åˆå§‹åŒ–æ–‡ä»¶ç³»ç»Ÿ */
+    void InitBuffer();                  /* åˆå§‹åŒ–ç¼“å­˜ç®¡ç†å™¨ */
+    void InitUser();                    /* åˆå§‹åŒ–ç”¨æˆ· */
+    int initDir(string path);           /* åˆå§‹åŒ–ç›®å½• */
 
 private:
-	void InitMemory();	//ÄÚ´æ³õÊ¼»¯
-	void InitProcess();	//½ø³Ì³õÊ¼»¯
-	void InitBuffer();	//buffer³õÊ¼»¯
-	void InitFileSystem();	//ÎÄ¼şÏµÍ³³õÊ¼»¯
-
-private:
-	static Kernel instance;		/* Kernelµ¥ÌåÀàÊµÀı */
-
-	KernelPageManager* m_KernelPageManager;	//ÄÚºËÒ³±í¹ÜÀí
-	UserPageManager* m_UserPageManager;	//ÓÃ»§Ò³±í¹ÜÀí
-	ProcessManager* m_ProcessManager;	//½ø³Ì¹ÜÀí
-	KernelAllocator* m_KernelAllocator;	//ÄÚºËÄÚ´æ·ÖÀà
-	SwapperManager* m_SwapperManager;	//½»»»Çø¹ÜÀí
-	BufferManager* m_BufferManager;	//»º³åÇø¹ÜÀí
-	DeviceManager* m_DeviceManager;	//Éè±¸¹ÜÀí
-	FileSystem* m_FileSystem;	//ÎÄ¼şÏµÍ³
-	FileManager* m_FileManager;	//ÎÄ¼ş¹ÜÀí
+    static Kernel instance;             /* å•ä½“å®ä¾‹ */   
+    DiskDriver* m_DiskDriver;           /* ç£ç›˜é©±åŠ¨å™¨ */
+    BufferManager*  m_BufferManager;    /* ç¼“å­˜ç®¡ç†å™¨ */
+    FileSystem*  m_FileSystem;          /* æ–‡ä»¶ç³»ç»Ÿ */
+    FileManager* m_FileManager;         /* æ–‡ä»¶ç®¡ç†å™¨ */
+    User* m_User;                       /* ç”¨æˆ· */
 };
 
 #endif
+

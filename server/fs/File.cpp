@@ -1,10 +1,4 @@
-/*
- * @Description: this file defines the class File
- * @Date: 2022-09-05 14:30:16
- * @LastEditTime: 2023-04-02 15:56:26
- */
 #include "File.h"
-#include "Utility.h" //for NULL
 #include "Kernel.h"
 
 /*==============================class File===================================*/
@@ -18,7 +12,7 @@ File::File()
 
 File::~File()
 {
-	// nothing to do here
+	//nothing to do here
 }
 
 /*==============================class OpenFiles===================================*/
@@ -30,81 +24,73 @@ OpenFiles::~OpenFiles()
 {
 }
 
-/*±¾º¯ÊıÓÃÓÚ·ÖÅäÏĞÖÃ´ò¿ªÎÄ¼ş±íÏî*/
 int OpenFiles::AllocFreeSlot()
 {
-	int i;									/* ÓÃÓÚÑ­»·¼ÆÊı */
-	User &u = Kernel::Instance().GetUser(); /*»ñµÃµ±Ç°ÓÃ»§User½á¹¹*/
-
-	for (i = 0; i < OpenFiles::NOFILES; i++)
+	int i;
+	User& u = Kernel::Instance().GetUser();
+	
+	for(i = 0; i < OpenFiles::NOFILES; i++)
 	{
-		/* ½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û±íÖĞÕÒµ½¿ÕÏĞÏî£¬Ôò·µ»ØÖ® */
-		if (this->ProcessOpenFileTable[i] == NULL)
+		/* è¿›ç¨‹æ‰“å¼€æ–‡ä»¶æè¿°ç¬¦è¡¨ä¸­æ‰¾åˆ°ç©ºé—²é¡¹ï¼Œåˆ™è¿”å›ä¹‹ */
+		if(this->ProcessOpenFileTable[i] == NULL)
 		{
-			/* ÉèÖÃºËĞÄÕ»ÏÖ³¡±£»¤ÇøÖĞµÄEAX¼Ä´æÆ÷µÄÖµ£¬¼´ÏµÍ³µ÷ÓÃ·µ»ØÖµ */
-			u.u_ar0[User::EAX] = i; /*½«±íÏî±àºÅÍ¨¹ıUser½á¹¹ÖĞEAXµÄ·½Ê½´«µİ*/
-			return i;				/*³É¹¦·ÖÅä£¬·µ»Ø±íÏî±àºÅ*/
+			/* è®¾ç½®æ ¸å¿ƒæ ˆç°åœºä¿æŠ¤åŒºä¸­çš„EAXå¯„å­˜å™¨çš„å€¼ï¼Œå³ç³»ç»Ÿè°ƒç”¨è¿”å›å€¼ */
+			u.u_ar0[User::EAX] = i;
+			return i;
 		}
 	}
 
-	u.u_ar0[User::EAX] = -1;  /* Open1£¬ĞèÒªÒ»¸ö±êÖ¾¡£µ±´ò¿ªÎÄ¼ş½á¹¹´´½¨Ê§°ÜÊ±£¬¿ÉÒÔ»ØÊÕÏµÍ³×ÊÔ´*/
-	u.u_error = User::EMFILE; /* ÉèÖÃ´íÎóºÅ */
-	return -1;				  /* ·ÖÅäÊ§°Ü£¬·µ»Ø-1 */
+	u.u_ar0[User::EAX] = -1;   /* Open1ï¼Œéœ€è¦ä¸€ä¸ªæ ‡å¿—ã€‚å½“æ‰“å¼€æ–‡ä»¶ç»“æ„åˆ›å»ºå¤±è´¥æ—¶ï¼Œå¯ä»¥å›æ”¶ç³»ç»Ÿèµ„æº*/
+	u.u_error = EMFILE;
+	return -1;
 }
 
-/* ±¾º¯ÊıÓÃÓÚ¿ËÂ¡´ò¿ªÎÄ¼ş±íÏî£¬Êµ¼ÊÉÏ¸ù±¾Ã»ÓĞ±»µ÷ÓÃ¹ı */
 int OpenFiles::Clone(int fd)
 {
 	return 0;
 }
 
-/* ±¾º¯ÊıÓÃÓÚÍ¨¹ı´ò¿ªÎÄ¼ş±íÏîÏÂ±êÀ´»ñµÃÎÄ¼ş¶ÁĞ´Ö¸Õë */
-File *OpenFiles::GetF(int fd)
+File* OpenFiles::GetF(int fd)
 {
-	File *pFile;							/* ÓÃÓÚ´æ·Å´ò¿ªÎÄ¼ş±íÏîµÄÖ¸Õë */
-	User &u = Kernel::Instance().GetUser(); /*»ñµÃµ±Ç°ÓÃ»§User½á¹¹*/
-
-	/* Èç¹û´ò¿ªÎÄ¼şÃèÊö·ûµÄÖµ³¬³öÁË·¶Î§ */
-	if (fd < 0 || fd >= OpenFiles::NOFILES)
+	File* pFile;
+	User& u = Kernel::Instance().GetUser();
+	
+	/* å¦‚æœæ‰“å¼€æ–‡ä»¶æè¿°ç¬¦çš„å€¼è¶…å‡ºäº†èŒƒå›´ */
+	if(fd < 0 || fd >= OpenFiles::NOFILES)
 	{
-		u.u_error = User::EBADF; /* ÉèÖÃ´íÎóºÅ */
-		return NULL;			 /* ´ò¿ªÊ§°Ü·µ»ØNULL */
+		u.u_error = EBADF;
+		return NULL;
 	}
 
-	/* »ñµÃ½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û±íÖĞÏàÓ¦µÄFile½á¹¹*/
 	pFile = this->ProcessOpenFileTable[fd];
-	if (pFile == NULL)
+	if(pFile == NULL)
 	{
-		/* Èç¹û½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û±íÖĞÏàÓ¦µÄFile½á¹¹Îª¿Õ£¬ÔòÉèÖÃ´íÎóºÅ */
-		u.u_error = User::EBADF;
+		u.u_error = EBADF;
 	}
 
-	return pFile; /* ¼´Ê¹pFile==NULLÒ²·µ»ØËü£¬ÓÉµ÷ÓÃGetFµÄº¯ÊıÀ´ÅĞ¶Ï·µ»ØÖµ */
+	return pFile;	/* å³ä½¿pFile==NULLä¹Ÿè¿”å›å®ƒï¼Œç”±è°ƒç”¨GetFçš„å‡½æ•°æ¥åˆ¤æ–­è¿”å›å€¼ */
 }
 
-/*±¾º¯ÊıÓÃÓÚÉèÖÃ½ø³Ì´ò¿ªÎÄ¼şÃèÊö·û±íÖĞ¶ÔÓ¦±íÏîµÄÏàÓ¦µÄFile½á¹¹*/
-void OpenFiles::SetF(int fd, File *pFile)
+void OpenFiles::SetF(int fd, File* pFile)
 {
-	/* Èç¹û´ò¿ªÎÄ¼şÃèÊö·ûµÄÖµ³¬³öÁË·¶Î§ */
-	if (fd < 0 || fd >= OpenFiles::NOFILES)
+	if(fd < 0 || fd >= OpenFiles::NOFILES)
 	{
-		return; /* ´ò¿ªÊ§°Ü·µ»Ø */
+		return;
 	}
-	/* ½ø³Ì´ò¿ªÎÄ¼şÃèÊö·ûÖ¸ÏòÏµÍ³´ò¿ªÎÄ¼ş±íÖĞÏàÓ¦µÄFile½á¹¹ */
+	/* è¿›ç¨‹æ‰“å¼€æ–‡ä»¶æè¿°ç¬¦æŒ‡å‘ç³»ç»Ÿæ‰“å¼€æ–‡ä»¶è¡¨ä¸­ç›¸åº”çš„Fileç»“æ„ */
 	this->ProcessOpenFileTable[fd] = pFile;
 }
 
 /*==============================class IOParameter===================================*/
-/* ÎÄ¼ş²ÎÊı¶ÔÏóµÄ¹¹Ôìº¯Êı */
 IOParameter::IOParameter()
 {
-	this->m_Base = 0;	/* µ±Ç°¶Á¡¢Ğ´ÓÃ»§Ä¿±êÇøÓòµÄÊ×µØÖ· */
-	this->m_Count = 0;	/* µ±Ç°»¹Ê£ÓàµÄ¶Á¡¢Ğ´×Ö½ÚÊıÁ¿ */
-	this->m_Offset = 0; /* µ±Ç°¶Á¡¢Ğ´ÎÄ¼şµÄ×Ö½ÚÆ«ÒÆÁ¿ */
+	this->m_Base = 0;
+	this->m_Count = 0;
+	this->m_Offset = 0;
 }
 
-/* ÎÄ¼ş²ÎÊı¶ÔÏóµÄÎö¹¹º¯Êı */
 IOParameter::~IOParameter()
 {
-	// nothing to do here
+	//nothing to do here
 }
+
