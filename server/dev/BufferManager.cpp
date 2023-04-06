@@ -24,6 +24,8 @@ void BufferManager::Initialize()
 	for(i = 0; i < NBUF; i++)
 	{
 		bp = &(this->m_Buf[i]);//取得缓存块
+		pthread_mutex_init(&bp->buf_lock, NULL);//初始化锁
+		pthread_mutex_lock(&bp->buf_lock);//上锁
 		bp->b_addr = this->Buffer[i];//取得缓存块的地址
 		/* 初始化NODEV队列 */
 		bp->b_back = &(this->bFreeList);//指向自有缓存队列的队尾
@@ -48,14 +50,29 @@ Buf* BufferManager::GetBlk(int blkno)
 	{
 		if (bp->b_blkno != blkno)
 			continue;
+		pthread_mutex_lock(&bp->buf_lock);//上锁
 		bp->b_flags |= Buf::B_BUSY;
 		return bp;
 	}
 
-	bp = headbp->b_forw;
+	int flag = 1;
+	for (bp = headbp->b_forw; bp != headbp; bp = bp->b_forw)
+	{
+		if(pthread_mutex_trylock(&bp->buf_lock)==0)//尝试开锁
+		{
+			flag = 0;
+			break;
+		}
+	}
+	if(flag)
+	{
+		pthread_mutex_lock(&bp->buf_lock); // 上锁，等待第一个缓存块解锁。
+		bp = headbp->b_forw;
+	}
 	if (bp->b_flags&Buf::B_DELWRI)
 	{
-		this->Bwrite(bp);                  // 写回磁盘
+		this->Bwrite(bp);                  // 写回磁盘，并解锁
+		pthread_mutex_lock(&bp->buf_lock); // 上锁
 	}
 	//注：这里清空了其他所有的标志，只置为busy
 	bp->b_flags = Buf::B_BUSY;
@@ -71,6 +88,7 @@ void BufferManager::Brelse(Buf* bp)
 	 * B_DONE则是指该缓存的内容正确地反映了存储在或应存储在磁盘上的信息 
 	 */
 	bp->b_flags &= ~(Buf::B_WANTED | Buf::B_BUSY | Buf::B_ASYNC);
+	pthread_mutex_unlock(&bp->buf_lock); //缓存块释放了，解锁
 	return;
 }
 

@@ -11,11 +11,15 @@ SuperBlock g_spb;
 SuperBlock::SuperBlock()
 {
 	//nothing to do here
+	pthread_mutex_init(&s_ilock,NULL);
+	pthread_mutex_init(&s_flock,NULL);
 }
 
 SuperBlock::~SuperBlock()
 {
 	//nothing to do here
+	pthread_mutex_destroy(&s_ilock);
+	pthread_mutex_destroy(&s_flock);
 }
 
 /*==============================class FileSystem===================================*/
@@ -46,18 +50,13 @@ void FileSystem::LoadSuperBlock()
 	{
 		int* p = (int *)&g_spb + i * 128;
 		pBuf = bufMgr.Bread(FileSystem::SUPER_BLOCK_SECTOR_NUMBER + i);
-
 		memcpy(p, pBuf->b_addr, BufferManager::BUFFER_SIZE);
-
 		bufMgr.Brelse(pBuf);
 	}
 	if (NOERROR != u.u_error)
 	{
 		printf("[error] Load SuperBlock Error....!\n");
 	}
-
-	// g_spb.s_flock = 0;
-	// g_spb.s_ilock = 0;
 	g_spb.s_ronly = 0;
 	time_t cur_time;
 	time(&cur_time);
@@ -91,6 +90,8 @@ void FileSystem::Update()
 		printf("[info] FileSystem::Update 提前结束，无需Update\n");
 		return;
 	}
+	pthread_mutex_lock(&sb->s_ilock);
+	pthread_mutex_lock(&sb->s_flock);
 	/* 清SuperBlock修改标志 */
 	sb->s_fmod = 0;
 	/* 写入SuperBlock最后存访时间 */
@@ -115,6 +116,8 @@ void FileSystem::Update()
 		/* 将缓冲区中的数据写到磁盘上 */
 		this->m_BufferManager->Bwrite(pBuf);
 	}
+	pthread_mutex_unlock(&sb->s_ilock);
+	pthread_mutex_unlock(&sb->s_flock);
 	/* 同步修改过的内存Inode到对应外存Inode */
 	g_InodeTable.UpdateInodeTable();
 
@@ -155,6 +158,7 @@ Inode* FileSystem::IAlloc()
 	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	if(sb->s_ninode <= 0)
 	{
+		pthread_mutex_lock(&sb->s_ilock);
 		/* 外存Inode编号从0开始，这不同于Unix V6中外存Inode从1开始编号 */
 		ino = -1;
 
@@ -206,7 +210,7 @@ Inode* FileSystem::IAlloc()
 				break;
 			}
 		}
-
+		pthread_mutex_unlock(&sb->s_ilock);
 		/* 如果在磁盘上没有搜索到任何可用外存Inode，返回NULL */
 		if(sb->s_ninode <= 0)
 		{
@@ -302,6 +306,7 @@ Buf* FileSystem::Alloc()
 	 * 是由于其余进程调用Free()或Alloc()造成的。
 	 */
 
+	pthread_mutex_lock(&sb->s_flock);
 	/* 从索引表“栈顶”获取空闲磁盘块编号 */
 	blkno = sb->s_free[--sb->s_nfree];
 
@@ -354,6 +359,7 @@ Buf* FileSystem::Alloc()
 		/* 解除对空闲磁盘块索引表的锁，唤醒因为等待锁而睡眠的进程 */
 		// sb->s_flock = 0;
 	}
+	pthread_mutex_unlock(&sb->s_flock);
 	/* 普通情况下成功分配到一空闲磁盘块 */
 	pBuf = this->m_BufferManager->GetBlk(blkno);	/* 为该磁盘块申请缓存 */
 	this->m_BufferManager->ClrBuf(pBuf);	/* 清空缓存中的数据 */
@@ -378,7 +384,7 @@ void FileSystem::Free(int blkno)
 	 * 磁盘块Free()执行过程中，对SuperBlock内存副本
 	 * 的修改仅进行了一半，就更新到磁盘SuperBlock去
 	 */
-
+	pthread_mutex_lock(&sb->s_flock);
 	/* 检查释放磁盘块的合法性 */
 	if(this->BadBlock(sb, blkno))
 	{
@@ -420,6 +426,7 @@ void FileSystem::Free(int blkno)
 	}
 	sb->s_free[sb->s_nfree++] = blkno;	/* SuperBlock中记录下当前释放盘块号 */
 	sb->s_fmod = 1;
+	pthread_mutex_unlock(&sb->s_flock);
 }
 
 bool FileSystem::BadBlock(SuperBlock *spb, int blkno)

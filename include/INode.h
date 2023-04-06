@@ -4,6 +4,7 @@
 #include "Buf.h"
 #include <chrono>  
 #include <time.h>
+#include <pthread.h>
 
 /*
  * 内存索引节点(INode)的定义
@@ -110,6 +111,7 @@ public:
 	
 	/* Members */
 public:
+	pthread_mutex_t mutex;	/*互斥锁*/
 	unsigned int i_flag;	/* 状态的标志位，定义见enum INodeFlag */
 	unsigned int i_mode;	/* 文件工作方式信息 */
 	

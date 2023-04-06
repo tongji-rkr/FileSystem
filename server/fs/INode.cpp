@@ -23,6 +23,7 @@ Inode::Inode()
 	 */
 	
 	/* 将Inode对象的成员变量初始化为无效值 */
+	pthread_mutex_init(&this->mutex, NULL);
 	this->i_flag = 0;
 	this->i_mode = 0;
 	this->i_count = 0;
@@ -41,6 +42,7 @@ Inode::Inode()
 
 Inode::~Inode()
 {
+	pthread_mutex_destroy(&this->mutex);
 	//nothing to do here
 }
 
@@ -493,11 +495,13 @@ void Inode::NFrele()
 {
 	/* 解锁pipe或Inode,并且唤醒相应进程 */
 	this->i_flag &= ~Inode::ILOCK;
+	pthread_mutex_unlock(&this->mutex);
 }
 
 void Inode::NFlock()
 {
 	/* 锁定pipe或Inode */
+	pthread_mutex_lock(&this->mutex);
 	this->i_flag |= Inode::ILOCK;
 }
 

@@ -691,6 +691,7 @@ void FileManager::Link()
 
 	/* 解锁现存文件Inode,以避免在以下搜索新文件时产生死锁 */
 	pInode->i_flag &= (~Inode::ILOCK);
+	pthread_mutex_unlock(&pInode->mutex);
 	/* 指向要创建的新路径newPathname */
 	u.u_dirp = (char *)u.u_arg[1];
 	pNewInode = this->NameI(FileManager::NextChar, FileManager::CREATE);

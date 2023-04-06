@@ -33,11 +33,13 @@ void Kernel::Initialize()
     FileManager &fileMgr = Kernel::Instance().GetFileManager();
     fileMgr.rootDirInode = g_InodeTable.IGet(FileSystem::ROOTINO);
     fileMgr.rootDirInode->i_flag &= (~Inode::ILOCK);
+    pthread_mutex_unlock(& fileMgr.rootDirInode->mutex);
 
     Kernel::Instance().GetFileSystem().LoadSuperBlock();
     User &us = Kernel::Instance().GetUser();
     us.u_cdir = g_InodeTable.IGet(FileSystem::ROOTINO);
     us.u_cdir->i_flag &= (~Inode::ILOCK);
+    pthread_mutex_unlock(& us.u_cdir->mutex);
     strcpy(us.u_curdir, "/");
 
     //初始化文件树

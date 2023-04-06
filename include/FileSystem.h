@@ -4,6 +4,7 @@
 #include "INode.h"
 #include "BufferManager.h"
 #include "Buf.h"
+#include <pthread.h>
 
 
 /*
@@ -28,6 +29,9 @@ public:
 	
 	int		s_ninode;		/* 直接管理的空闲外存Inode数量 */
 	int		s_inode[100];	/* 直接管理的空闲外存Inode索引表 */
+
+	pthread_mutex_t		s_flock;		/* 封锁空闲盘块索引表标志 */
+	pthread_mutex_t		s_ilock;		/* 封锁空闲Inode表标志 */
 	
 	int		s_fmod;			/* 内存中super block副本被修改标志，意味着需要更新外存对应的Super Block */
 	int		s_ronly;		/* 本文件系统只能读出 */

@@ -112,6 +112,7 @@ Inode* InodeTable::IGet(int inumber)
 		if(index >= 0)	/* 找到内存拷贝 */
 		{
 			pInode = &(this->m_Inode[index]);
+			pthread_mutex_lock(&pInode->mutex);
 			pInode->i_count++;
 			pInode->i_flag |= Inode::ILOCK;
 			return pInode;

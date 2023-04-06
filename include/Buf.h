@@ -1,6 +1,6 @@
 #ifndef BUF_H
 #define BUF_H
-
+#include <pthread.h>
 /*
  * 缓存控制块buf定义
  * 记录了相应缓存的使用情况等信息；
@@ -36,6 +36,7 @@ public:
 	int		b_blkno;		/* 磁盘逻辑块号 */
 	int		b_error;		/* I/O出错时信息 */
 	int		b_resid;		/* I/O出错时尚未传送的剩余字节数 */
+	pthread_mutex_t buf_lock;
 };
 
 #endif
