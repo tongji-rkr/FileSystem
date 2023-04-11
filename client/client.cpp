@@ -69,7 +69,7 @@ void running(int fd)
 int main(int argc, char **argv)
 {
     if (argc < 3){
-        printf("please input ip and port, for example ./client 120.12.34.56 80.\n");
+        printf("please input ip and port, for example ./main 120.12.34.56 80.\n");
         return -1;
     }
     char *ipaddr = argv[1];

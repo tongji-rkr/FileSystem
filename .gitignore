@@ -1,0 +1,9 @@
+/objs
+/test
+.ssh
+
+# for vscode editor
+.vscode
+
+# for the build
+./server/build

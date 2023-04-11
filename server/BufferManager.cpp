@@ -1,3 +1,4 @@
+// lyx
 #include "BufferManager.h"
 #include "SecondFileKernel.h"
 #include<string.h>
