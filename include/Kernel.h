@@ -1,9 +1,8 @@
-#ifndef SECONDFILEKERNEL
-#define SECONDFILEKERNEL
+#ifndef KERNEL_H
+#define KERNEL_H
 
 #include <string>
-// #include <stddef.h>
-#include "Machine.h"
+#include "DiskDriver.h"
 
 #include "FileManager.h"
 #include "FileSystem.h"
@@ -22,20 +21,20 @@
 typedef unsigned int FD;
 
 
-class SecondFileKernel
+class Kernel
 {
 public:
 // 定义一些全局常量
 
 
 // 工具函数
-    SecondFileKernel();
-    ~SecondFileKernel();
-    static SecondFileKernel& Instance();
+    Kernel();
+    ~Kernel();
+    static Kernel& Instance();
     void Initialize(); //文件系统初始化
     void Quit();       //退出文件系统
 // Kernel的子组件
-    Machine& GetMachine();
+    DiskDriver& GetDiskDriver();
     BufferManager& GetBufferManager();
     FileSystem& GetFileSystem();
     FileManager& GetFileManager();
@@ -56,16 +55,16 @@ public:
 
 private:
 // Kernel子组件的初始化函数
-    void InitMachine();
+    void InitDiskDriver();
     void InitFileSystem();
     void InitBuffer();
     void InitUser();
 
 private:
-    static SecondFileKernel instance; // 单体实例
+    static Kernel instance; // 单体实例
 
 // 指向子组件的指针
-    Machine* m_Machine;
+    DiskDriver* m_DiskDriver;
     BufferManager*  m_BufferManager;
     FileSystem*  m_FileSystem;
     FileManager* m_FileManager;

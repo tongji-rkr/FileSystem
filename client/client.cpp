@@ -1,6 +1,7 @@
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
 #include <string.h>
+#include <cstring>
 #include <unistd.h>
 #include <sys/types.h> /* See NOTES */
 #include <sys/socket.h>
@@ -9,8 +10,21 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <string>
+#include <iostream>
 
 #define MAXDATASIZE 1024
+
+using namespace std;
+
+const string welcome_string =
+    " _____ _ _      ____            _               \n"
+    "|  ___(_) | ___/ ___| _   _ ___| |_ ___ _ __ ___  \n"
+    "| |_  | | |/ _ \\___ \\| | | / __| __/ _ \\ '_ ` _ \\  \n"
+    "|  _| | | |  __/___) | |_| \\__ \\ ||  __/ | | | | | \n"
+    "|_|   |_|_|\\___|____/ \\__, |___/\\__\\___|_| |_| |_| \n"
+    "                      |___/                       \n"
+    ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
 
 void running(int fd)
 {
@@ -19,66 +33,94 @@ void running(int fd)
     char sendM[1025] = {0};
     bool first_recv = 0;
 
-
-    while(true){
-        // 非阻塞接收：提示消息
-        while(1){
+    while (true)
+    {
+        // receive the message from server
+        while (1)
+        {
             numbytes = recv(fd, receiveM, MAXDATASIZE, 0);
-            if (numbytes == 0){
-                printf("[ERROR] 连接被服务端关闭，客户端退出.\n");
+            if (numbytes == 0)
+            {
+                cout<<"[NETWORK] server closed, client quit."<<endl;
                 return;
             }
-            if(numbytes == -1){
-                if(errno != EAGAIN &&errno != EWOULDBLOCK && errno != EINTR){
-                    printf("[ERROR] recv 错误, 错误码%d(%s)\n", errno, strerror(errno));
+            if (numbytes == -1)
+            {
+                if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
+                {
+                    cout<<"[NETWORK] recv error, error code "<<errno<<"("<<strerror(errno)<<")"<<endl;
                     return;
                 }
-                if(errno == EINTR)
+                if (errno == EINTR)
                     continue;
-                if(!first_recv)
+                if (!first_recv)
                     continue;
             }
-            if(numbytes > 0){
-                //printf("[INFO] revc %d bytes\n", numbytes);
+            if (numbytes > 0)
+            {
+                // printf("[INFO] revc %d bytes\n", numbytes);
+                cout<< "[INFO] receive message from server of " << numbytes << " bytes" << endl;
                 receiveM[numbytes] = 0;
-                printf("%s", receiveM);
-                if(!first_recv)
+                cout << receiveM;
+                if (!first_recv)
                     first_recv = 1;
             }
             break;
         }
 
-        // 输入：用户输入
+        // input
         fgets(sendM, 1024, stdin);
         int send_le;
         send_le = strlen(sendM);
-        sendM[send_le - 1] = '\0'; // 去掉回车
-        if(send_le == 1){
+        sendM[send_le - 1] = '\0'; // remove the '\n'
+        if (send_le == 1)
+        {
             send_le += 1;
             sendM[0] = ' ';
         }
-        // 发送：用户输入
-        if((numbytes=send(fd, sendM, send_le-1, 0)) == -1){
-            printf("[EROOR] send error\n");
+        // send the message to server
+        if ((numbytes = send(fd, sendM, send_le - 1, 0)) == -1)
+        {
+            printf("[NETWORK] send error\n");
             return;
         }
-        //printf("[INFO] send %d bytes\n", numbytes);
+        // printf("[INFO] send %d bytes\n", numbytes);
     }
 }
 
 int main(int argc, char **argv)
 {
-    if (argc < 3){
-        printf("please input ip and port, for example ./main 120.12.34.56 80.\n");
-        return -1;
+
+    // show welcome string
+    cout << welcome_string << endl;
+
+    // get the ip and port from the input
+    string ipaddr;
+    cout << "Please input the ip address of the server (default:127.0.0.1): ";
+    getline(cin, ipaddr);
+    if (ipaddr.empty())
+    {
+        ipaddr = "127.0.0.1";
     }
-    char *ipaddr = argv[1];
-    unsigned int port = atoi(argv[2]);
-    
+
+    // get the port from the input
+    unsigned int port;
+    cout << "Please input the port of the server (default:8888): ";
+    getline(cin, ipaddr);
+    if (ipaddr.empty())
+    {
+        port = 8888;
+    }
+    else
+    {
+        port = atoi(ipaddr.c_str());
+    }
+
     int fd = 0;
     struct sockaddr_in addr;
     fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0){
+    if (fd < 0)
+    {
         fprintf(stderr, "create socket failed,error:%s.\n", strerror(errno));
         return -1;
     }
@@ -86,35 +128,39 @@ int main(int argc, char **argv)
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    inet_pton(AF_INET, ipaddr, &addr.sin_addr);
+    inet_pton(AF_INET, ipaddr.c_str(), &addr.sin_addr);
 
-    /*设置套接字为非阻塞*/
+    /* set the socket to non-blocking */
     int flags = fcntl(fd, F_GETFL, 0);
     flags |= O_NONBLOCK;
-    if (fcntl(fd, F_SETFL, flags) < 0){
+    if (fcntl(fd, F_SETFL, flags) < 0)
+    {
         fprintf(stderr, "Set flags error:%s\n", strerror(errno));
         close(fd);
         return -1;
     }
 
-    /*建立连接：阻塞情况下linux系统默认超时时间为75s*/
+    /*try to connect the server*/
     int cnt = 1;
-    while(true){
+    while (true)
+    {
         int rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-        // 连接成功
-        if(rc == 0){
-            printf("[INFO] 与服务器连接成功.\n");
+        // successfull connected
+        if (rc == 0)
+        {
+            cout<<"[NETWORK] connect to server successfully."<<endl;
             break;
         }
-        if(cnt > 5){
-            printf("[ERROR] 连接失败，客户端退出.\n");
+        if (cnt > 5)
+        {
+            cout<<"[NETWORK] connect failed, client quit."<<endl;
             return 0;
         }
-        printf("[INFO] 第 %d 次连接失败，尝试重连...\n", cnt++);
+        cout<<"[NETWORK] try to connect to server for the "<<cnt++<<" time."<<endl;
     }
 
     running(fd);
     close(fd);
-    printf("[INFO] 关闭连接，客户端退出.\n");
+    printf("[NETWORK] shutdown the client.\n");
     return 0;
 }

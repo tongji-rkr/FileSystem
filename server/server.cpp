@@ -17,7 +17,7 @@
 #include <arpa/inet.h>
 #include<pthread.h>
 #include <signal.h>
-#define PORT 1235
+#define PORT 8888
 #define BACKLOG 128
 
 using namespace std;

@@ -6,4 +6,5 @@
 .vscode
 
 # for the build
-./server/build
+./server/build/
+./client/build/
