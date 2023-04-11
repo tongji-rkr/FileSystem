@@ -1,5 +1,5 @@
 #include "User.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include <string.h>
 void User::Setuid()
 {

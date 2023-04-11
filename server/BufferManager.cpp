@@ -1,6 +1,5 @@
-// lyx
 #include "BufferManager.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include<string.h>
 #include<iostream>
 using namespace std;
@@ -228,7 +227,7 @@ void BufferManager::Bflush()
 
 void BufferManager::GetError(Buf* bp)
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	if (bp->b_flags & Buf::B_ERROR)
 	{

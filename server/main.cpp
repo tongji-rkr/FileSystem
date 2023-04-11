@@ -1,4 +1,4 @@
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include <iostream>
 #include <string>
 #include <string.h>
@@ -95,7 +95,7 @@ void *start_routine( void *ptr)
     sd.send_(print_head());
 
     // 初始化用户User结构和目录
-    SecondFileKernel::Instance().GetUserManager().Login(username);
+    Kernel::Instance().GetUserManager().Login(username);
 
     string tipswords="||SecondFileSystem@"+username+"请输入函数名及参数$";
     while(true){
@@ -105,7 +105,7 @@ void *start_routine( void *ptr)
         numbytes = send(fd,tipswords.c_str(),tipswords.length(),0); 
         if(numbytes<=0){
             cout<<"[info] 用户 "<<username<<" 断开连接."<<endl;
-            SecondFileKernel::Instance().GetUserManager().Logout();
+            Kernel::Instance().GetUserManager().Logout();
             return (void*)NULL;
         }
         printf("[INFO] send %d bytes\n", numbytes);
@@ -113,7 +113,7 @@ void *start_routine( void *ptr)
         // 读取用户输入的命令行
         if ((numbytes=recv(fd, buf_recv,1024,0)) == -1){ 
             cout<<"recv() error"<<endl;
-            SecondFileKernel::Instance().GetUserManager().Logout();
+            Kernel::Instance().GetUserManager().Logout();
             return (void *)NULL;
         }
         //解析命令名称
@@ -134,13 +134,13 @@ void *start_routine( void *ptr)
                 continue;
             }
             // 调用
-            User &u=SecondFileKernel::Instance().GetUser();
+            User &u=Kernel::Instance().GetUser();
 			u.u_error= NOERROR;
 			char dirname[300]={0};
             strcpy(dirname,param1.c_str());
             u.u_dirp=dirname;
             u.u_arg[0]=(unsigned long long)(dirname);
-	        FileManager &fimanag = SecondFileKernel::Instance().GetFileManager();
+	        FileManager &fimanag = Kernel::Instance().GetFileManager();
 	        fimanag.ChDir();
             // 打印结果
             send_str << "[result]:\n" << "now dir=" << dirname << endl;
@@ -148,14 +148,14 @@ void *start_routine( void *ptr)
             continue;
         }
         if(api == "ls"){
-			User &u=SecondFileKernel::Instance().GetUser();
+			User &u=Kernel::Instance().GetUser();
 			u.u_error=NOERROR;
 			string cur_path=u.u_curdir;
-			FD fd = SecondFileKernel::Instance().Sys_Open(cur_path,(File::FREAD));
+			FD fd = Kernel::Instance().Sys_Open(cur_path,(File::FREAD));
             send_str << " cur_path:" << cur_path << endl;
             char buf[33]={0};
 			while(1){
-				if(SecondFileKernel::Instance().Sys_Read(fd, 32, 33, buf)==0)
+				if(Kernel::Instance().Sys_Read(fd, 32, 33, buf)==0)
 					break;
 				else{
                     // send_str << "cur_path:" << cur_path << endl << "buf:" << buf;
@@ -166,7 +166,7 @@ void *start_routine( void *ptr)
 					memset(buf, 0, 32);
 				}
 			}
-			SecondFileKernel::Instance().Sys_Close(fd);
+			Kernel::Instance().Sys_Close(fd);
             sd.send_(send_str);
             continue;
         }
@@ -179,7 +179,7 @@ void *start_routine( void *ptr)
                 sd.send_(send_str);
                 continue;
             }
-            int ret = SecondFileKernel::Instance().Sys_CreatDir(path);
+            int ret = Kernel::Instance().Sys_CreatDir(path);
             send_str<<"mkdir success (ret=" << ret << ")" <<endl;
             sd.send_(send_str);
             continue;
@@ -193,7 +193,7 @@ void *start_routine( void *ptr)
                 sd.send_(send_str);
                 continue;
             }
-            User &u =SecondFileKernel::Instance().GetUser();
+            User &u =Kernel::Instance().GetUser();
 			u.u_error = NOERROR;
 			u.u_ar0[0] = 0;
             u.u_ar0[1] = 0;
@@ -201,7 +201,7 @@ void *start_routine( void *ptr)
 			strcpy(filename_char,filename.c_str());
             u.u_dirp=filename_char;
 			u.u_arg[1] = Inode::IRWXU;
-			FileManager &fimanag=SecondFileKernel::Instance().GetFileManager();
+			FileManager &fimanag=Kernel::Instance().GetFileManager();
 			fimanag.Creat();
             send_str<<"mkfile sucess"<<endl;
             sd.send_(send_str);
@@ -216,14 +216,14 @@ void *start_routine( void *ptr)
                 sd.send_(send_str);
                 continue;
             }
-            User &u =SecondFileKernel::Instance().GetUser();
+            User &u =Kernel::Instance().GetUser();
 			u.u_error = NOERROR;
 			u.u_ar0[0] = 0;
             u.u_ar0[1] = 0;
             char filename_char[512];
 			strcpy(filename_char,filename.c_str());
             u.u_dirp=filename_char;
-			FileManager &fimanag=SecondFileKernel::Instance().GetFileManager();
+			FileManager &fimanag=Kernel::Instance().GetFileManager();
 			fimanag.UnLink();
             send_str<<"rm success"<<endl;
             sd.send_(send_str);
@@ -256,21 +256,21 @@ void *start_routine( void *ptr)
                 continue;
             }
             int ptrname_int = atoi(ptrname.c_str());
-            User &u =SecondFileKernel::Instance().GetUser();
+            User &u =Kernel::Instance().GetUser();
 			u.u_error = NOERROR;
 			u.u_ar0[0] = 0;
             u.u_ar0[1] = 0;
 			u.u_arg[0]=fd_int;
 			u.u_arg[1]=position_int;
 			u.u_arg[2]=ptrname_int;
-			FileManager &fimanag=SecondFileKernel::Instance().GetFileManager();
+			FileManager &fimanag=Kernel::Instance().GetFileManager();
 			fimanag.Seek();
 			send_str<<"[Results:]\n"<<"u.u_ar0="<<u.u_ar0<<endl;
             sd.send_(send_str);
             continue;
         }
         if (api == "open"){
-            // FD SecondFileKernel::Sys_Open(std::string& fpath,int mode)
+            // FD Kernel::Sys_Open(std::string& fpath,int mode)
             string param1;
             string param2;
             ss >> param1 >> param2;
@@ -289,7 +289,7 @@ void *start_routine( void *ptr)
             int mode = atoi(param2.c_str());
 
             // 调用
-            FD fd = SecondFileKernel::Instance().Sys_Open(fpath, mode);
+            FD fd = Kernel::Instance().Sys_Open(fpath, mode);
             // 打印结果
             send_str << "[ 结 果 ]:\n" << "fd=" << fd << endl;
             sd.send_(send_str);
@@ -331,7 +331,7 @@ void *start_routine( void *ptr)
             // 调用 API
             char buf[1025];
             memset(buf, 0, sizeof(buf));
-            int ret = SecondFileKernel::Instance().Sys_Read(fd, size, 1025, buf);
+            int ret = Kernel::Instance().Sys_Read(fd, size, 1025, buf);
             // 结果返回
             send_str << "[ 结 果 ]:\n"
                  << "ret=" << ret << endl 
@@ -371,7 +371,7 @@ void *start_routine( void *ptr)
             strcpy(buf, p2_content.c_str());
             int size = p2_content.length();
             // 调用 API
-            int ret = SecondFileKernel::Instance().Sys_Write(fd, size, 1024, buf);
+            int ret = Kernel::Instance().Sys_Write(fd, size, 1024, buf);
             // 打印结果
             send_str << "[ 结 果 ]\n" << "ret=" << ret << endl;
             sd.send_(send_str);
@@ -399,7 +399,7 @@ void *start_routine( void *ptr)
                 continue;
             }
             // 调用 API
-            int ret = SecondFileKernel::Instance().Sys_Close(fd);
+            int ret = Kernel::Instance().Sys_Close(fd);
             send_str << "[ 结 果 ]\n" << "ret=" << ret << endl;
             sd.send_(send_str);
             continue;
@@ -416,7 +416,7 @@ void *start_routine( void *ptr)
             }
             string fpath = p1_fpath;
             // Open
-            FD fd = SecondFileKernel::Instance().Sys_Open(fpath, 0x1);
+            FD fd = Kernel::Instance().Sys_Open(fpath, 0x1);
             if(fd < 0){
                 send_str << "[cat] 打开文件出错." << endl;
                 sd.send_(send_str);
@@ -426,14 +426,14 @@ void *start_routine( void *ptr)
             char buf[257];
             while(true){
                 memset(buf, 0, sizeof(buf));
-                int ret = SecondFileKernel::Instance().Sys_Read(fd, 256, 256, buf);
+                int ret = Kernel::Instance().Sys_Read(fd, 256, 256, buf);
                 if(ret <= 0){
                     break;
                 }
                 send_str << buf;
             }
             // Close
-            SecondFileKernel::Instance().Sys_Close(fd);
+            Kernel::Instance().Sys_Close(fd);
             sd.send_(send_str);
             continue;
         }
@@ -455,8 +455,8 @@ void *start_routine( void *ptr)
                 continue;
             }
             // 创建内部文件
-            SecondFileKernel::Instance().Sys_Creat(p2_ifpath, 0x1|0x2);
-            int ifd = SecondFileKernel::Instance().Sys_Open(p2_ifpath, 0x1|0x2);
+            Kernel::Instance().Sys_Creat(p2_ifpath, 0x1|0x2);
+            int ifd = Kernel::Instance().Sys_Open(p2_ifpath, 0x1|0x2);
             if(ifd < 0){
                 close(ofd);
                 send_str << "[ERROR] 打开文件失败：" << p2_ifpath << endl;
@@ -475,7 +475,7 @@ void *start_routine( void *ptr)
                 }
                 all_read_num += read_num;
                 int write_num = \
-                    SecondFileKernel::Instance().Sys_Write(ifd, read_num, 256, buf);
+                    Kernel::Instance().Sys_Write(ifd, read_num, 256, buf);
                 if(write_num <= 0){
                     send_str << "[ERROR] 写入文件失败：" << p2_ifpath;
                     break;
@@ -485,7 +485,7 @@ void *start_routine( void *ptr)
             send_str << "共读取字节：" << all_read_num 
                  << " 共写入字节：" << all_write_num << endl;
             close(ofd);
-            SecondFileKernel::Instance().Sys_Close(ifd);
+            Kernel::Instance().Sys_Close(ifd);
             sd.send_(send_str);
             continue;
         }
@@ -509,7 +509,7 @@ void *start_routine( void *ptr)
                 continue;
             }
             // 打开内部文件
-            int ifd = SecondFileKernel::Instance().Sys_Open(p1_ifpath, 0x1 | 0x2);
+            int ifd = Kernel::Instance().Sys_Open(p1_ifpath, 0x1 | 0x2);
             if (ifd < 0)
             {
                 close(ofd);
@@ -525,7 +525,7 @@ void *start_routine( void *ptr)
             {
                 memset(buf, 0, sizeof(buf));
                 int read_num = \
-                    SecondFileKernel::Instance().Sys_Read(ifd, 256, 256, buf);
+                    Kernel::Instance().Sys_Read(ifd, 256, 256, buf);
                 if (read_num <= 0)
                 {
                     break;
@@ -542,12 +542,12 @@ void *start_routine( void *ptr)
             send_str << "共读取字节：" << all_read_num
                  << " 共写入字节：" << all_write_num << endl;
             close(ofd);
-            SecondFileKernel::Instance().Sys_Close(ifd);
+            Kernel::Instance().Sys_Close(ifd);
             sd.send_(send_str);
             continue;
         }
         if (api == "q" || api == "quit"){
-            SecondFileKernel::Instance().GetUserManager().Logout();
+            Kernel::Instance().GetUserManager().Logout();
             send_str << "用户登出\n";
             sd.send_(send_str);
             break;
@@ -604,7 +604,7 @@ int main()
         exit(1); 
     }
     // 初始化文件系统
-    SecondFileKernel::Instance().Initialize();
+    Kernel::Instance().Initialize();
     cout << "[info] 等待用户接入..." << endl;
     // 进入通信循环
     while(1){

@@ -1,6 +1,5 @@
-// fqh
-#include "Machine.h"
-#include "SecondFileKernel.h"
+#include "DiskDriver.h"
+#include "Kernel.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -10,16 +9,16 @@
 #include <iostream>
 using namespace std;
 
-Machine::Machine()
+DiskDriver::DiskDriver()
 {
 }
-Machine::~Machine()
+DiskDriver::~DiskDriver()
 {
 }
-void Machine::Initialize()
+void DiskDriver::Initialize()
 {
     // 0. 取得 BufferManager
-    this->m_BufferManager = &SecondFileKernel::Instance().GetBufferManager();
+    this->m_BufferManager = &Kernel::Instance().GetBufferManager();
 
     // 1. 打开文件
     int fd = open(devpath, O_RDWR);
@@ -28,7 +27,7 @@ void Machine::Initialize()
         fd = open(devpath, O_RDWR | O_CREAT, 0666);
         if (fd == -1)
         {
-            printf("[error] Machine Init Error: 创建 %s 失败\n", devpath);
+            printf("[error] DiskDriver Init Error: 创建 %s 失败\n", devpath);
             exit(-1);
         }
         // 对磁盘进行初始化
@@ -42,7 +41,7 @@ void Machine::Initialize()
 }
 
 // 文件系统退出
-void Machine::quit()
+void DiskDriver::quit()
 {
     struct stat st; //定义文件信息结构体
     /*取得文件大小*/
@@ -58,7 +57,7 @@ void Machine::quit()
     
 }
 
-void Machine::init_spb(SuperBlock& sb)
+void DiskDriver::init_spb(SuperBlock& sb)
 {
     sb.s_isize = FileSystem::INODE_ZONE_SIZE;
     sb.s_fsize = FileSystem::DATA_ZONE_END_SECTOR + 1;
@@ -87,7 +86,7 @@ void Machine::init_spb(SuperBlock& sb)
     sb.s_ronly = 0;
 }
 
-void Machine::init_db(char* data)
+void DiskDriver::init_db(char* data)
 {
     struct
     {
@@ -120,7 +119,7 @@ void Machine::init_db(char* data)
     }
 }
 
-void Machine::init_img(int fd)
+void DiskDriver::init_img(int fd)
 {
     SuperBlock spb;
     init_spb(spb);
@@ -139,10 +138,10 @@ void Machine::init_img(int fd)
     write(fd, di_table, FileSystem::INODE_ZONE_SIZE * FileSystem::INODE_NUMBER_PER_SECTOR * sizeof(DiskInode));
     write(fd, datablock, FileSystem::DATA_ZONE_SIZE * 512);
 
-    printf("[info] 格式化磁盘完毕...");
+    printf("[info] 格式化磁盘完毕...\n");
 }
 
-void Machine::mmap_img(int fd)
+void DiskDriver::mmap_img(int fd)
 {
     struct stat st; //定义文件信息结构体
     /*取得文件大小*/

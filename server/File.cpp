@@ -1,6 +1,5 @@
-//kyf
 #include "File.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 
 /*==============================class File===================================*/
 File::File()
@@ -28,7 +27,7 @@ OpenFiles::~OpenFiles()
 int OpenFiles::AllocFreeSlot()
 {
 	int i;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	
 	for(i = 0; i < OpenFiles::NOFILES; i++)
 	{
@@ -54,7 +53,7 @@ int OpenFiles::Clone(int fd)
 File* OpenFiles::GetF(int fd)
 {
 	File* pFile;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	
 	/* 如果打开文件描述符的值超出了范围 */
 	if(fd < 0 || fd >= OpenFiles::NOFILES)

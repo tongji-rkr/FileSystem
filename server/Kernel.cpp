@@ -1,10 +1,10 @@
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include <string.h>
 
 // 全局单体实例
-SecondFileKernel SecondFileKernel::instance;
+Kernel Kernel::instance;
 
-Machine g_Machine;
+DiskDriver g_DiskDriver;
 BufferManager g_BufferManager;
 FileSystem g_FileSystem;
 FileManager g_FileManager;
@@ -14,32 +14,32 @@ UserManager g_UserManager;
 char returnBuf[256];
 
 // 构建与析构
-SecondFileKernel::SecondFileKernel()
+Kernel::Kernel()
 {
 }
-SecondFileKernel::~SecondFileKernel()
+Kernel::~Kernel()
 {
 }
 
 // 初始化函数：子组件和Kernel
-void SecondFileKernel::InitMachine()
+void Kernel::InitDiskDriver()
 {
-    this->m_Machine = &g_Machine;
-    this->m_Machine->Initialize(); // 进行img的初始化和mmap    
+    this->m_DiskDriver = &g_DiskDriver;
+    this->m_DiskDriver->Initialize(); // 进行img的初始化和mmap    
 }
-void SecondFileKernel::InitBuffer()
+void Kernel::InitBuffer()
 {
     this->m_BufferManager = &g_BufferManager;
     this->m_BufferManager->Initialize(); // 进行img的初始化和mmap   
 }
-void SecondFileKernel::InitFileSystem()
+void Kernel::InitFileSystem()
 {
     this->m_FileSystem = &g_FileSystem;
     this->m_FileSystem->Initialize();
     this->m_FileManager = &g_FileManager;
     this->m_FileManager->Initialize();
 }
-void SecondFileKernel::InitUser()
+void Kernel::InitUser()
 {
     this->m_User = &g_User;
     this->m_UserManager = &g_UserManager;
@@ -47,21 +47,21 @@ void SecondFileKernel::InitUser()
     // this->m_User->u_ar0 = (unsigned int*)&returnBuf;
 }
 
-void SecondFileKernel::Initialize()
+void Kernel::Initialize()
 {
     InitBuffer();
-    InitMachine(); // 包括初始化模拟磁盘
+    InitDiskDriver(); // 包括初始化模拟磁盘
     InitFileSystem();
     InitUser();
 
     // 进入系统初始化
-    FileManager &fileMgr = SecondFileKernel::Instance().GetFileManager();
+    FileManager &fileMgr = Kernel::Instance().GetFileManager();
     fileMgr.rootDirInode = g_InodeTable.IGet(FileSystem::ROOTINO);
     fileMgr.rootDirInode->i_flag &= (~Inode::ILOCK);
 	pthread_mutex_unlock(& fileMgr.rootDirInode->mutex);
 
-    SecondFileKernel::Instance().GetFileSystem().LoadSuperBlock();
-    User &us = SecondFileKernel::Instance().GetUser();
+    Kernel::Instance().GetFileSystem().LoadSuperBlock();
+    User &us = Kernel::Instance().GetUser();
     us.u_cdir = g_InodeTable.IGet(FileSystem::ROOTINO);
     us.u_cdir->i_flag &= (~Inode::ILOCK);
 	pthread_mutex_unlock(& us.u_cdir->mutex);
@@ -70,50 +70,50 @@ void SecondFileKernel::Initialize()
     printf("[info] 文件系统初始化完毕.\n");
 }
 
-void SecondFileKernel::Quit()
+void Kernel::Quit()
 {
     this->m_BufferManager->Bflush();
     this->m_FileManager->m_InodeTable->UpdateInodeTable();
     this->m_FileSystem->Update();
-    this->m_Machine->quit();
+    this->m_DiskDriver->quit();
 }
 
 // 其他文件获取单体实例对象的接口函数
-SecondFileKernel& SecondFileKernel::Instance()
+Kernel& Kernel::Instance()
 {
-    return SecondFileKernel::instance;
+    return Kernel::instance;
 }
 
-Machine &SecondFileKernel::GetMachine()
+DiskDriver &Kernel::GetDiskDriver()
 {
-    return *(this->m_Machine);
+    return *(this->m_DiskDriver);
 }
-BufferManager & SecondFileKernel::GetBufferManager()
+BufferManager & Kernel::GetBufferManager()
 {
     return *(this->m_BufferManager);
 }
-FileSystem & SecondFileKernel::GetFileSystem()
+FileSystem & Kernel::GetFileSystem()
 {
     return *(this->m_FileSystem);
 }
-FileManager &SecondFileKernel::GetFileManager()
+FileManager &Kernel::GetFileManager()
 {
     return *(this->m_FileManager);
 }
 
 // 废弃
-User &SecondFileKernel::GetSuperUser()
+User &Kernel::GetSuperUser()
 {
     return *(this->m_User);
 }
 
 // 使用
-User &SecondFileKernel::GetUser()
+User &Kernel::GetUser()
 {
     return *(this->m_UserManager->GetUser());
 }
 
-UserManager& SecondFileKernel::GetUserManager()
+UserManager& Kernel::GetUserManager()
 {
     return *(this->m_UserManager);
 }

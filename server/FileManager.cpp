@@ -1,6 +1,5 @@
-//kyf
 #include "FileManager.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include "User.h"
 #include <string.h>
 
@@ -17,7 +16,7 @@ FileManager::~FileManager()
 
 void FileManager::Initialize()
 {
-	this->m_FileSystem = &SecondFileKernel::Instance().GetFileSystem();
+	this->m_FileSystem = &Kernel::Instance().GetFileSystem();
 
 	this->m_InodeTable = &g_InodeTable;
 	this->m_OpenFileTable = &g_OpenFileTable;
@@ -32,7 +31,7 @@ void FileManager::Initialize()
 void FileManager::Open()
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	pInode = this->NameI(NextChar, FileManager::OPEN);	/* 0 = Open, not create */
 	/* 没有找到相应的Inode */
 	if ( NULL == pInode )
@@ -49,7 +48,7 @@ void FileManager::Open()
 void FileManager::Creat()
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	unsigned int newACCMode = u.u_arg[1] & (Inode::IRWXU|Inode::IRWXG|Inode::IRWXO);
 
 	/* 搜索目录的模式为1，表示创建；若父目录不可写，出错返回 */
@@ -96,7 +95,7 @@ void FileManager::Creat()
 */
 void FileManager::Open1(Inode* pInode, int mode, int trf)
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	/* 
 	 * 对所希望的文件已存在的情况下，即trf == 0或trf == 1进行权限检查
 	 * 如果所希望的名字不存在，即trf == 2，不需要进行权限检查，因为刚建立
@@ -170,7 +169,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 
 void FileManager::Close()
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	int fd = u.u_arg[0];
 
 	/* 获取打开文件控制块File结构 */
@@ -190,7 +189,7 @@ void FileManager::Close()
 void FileManager::Seek()
 {
 	File* pFile;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	int fd = u.u_arg[0];
 
 	pFile = u.u_ofiles.GetF(fd);
@@ -248,7 +247,7 @@ void FileManager::Write()
 void FileManager::Rdwr( enum File::FileFlags mode )
 {
 	File* pFile;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 根据Read()/Write()的系统调用参数fd获取打开文件控制块结构 */
 	pFile = u.u_ofiles.GetF(u.u_arg[0]);	/* fd */
@@ -306,8 +305,8 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 	char curchar;
 	char* pChar;
 	int freeEntryOffset;	/* 以创建文件模式搜索目录时，记录空闲目录项的偏移量 */
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 
 	/* 
 	 * 如果该路径是'/'开头的，从根目录开始搜索，
@@ -539,7 +538,7 @@ out:
 //获取完整参数字符串
 char FileManager::NextChar()
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	
 	/* u.u_dirp指向pathname中的字符 */
 	return *u.u_dirp++;
@@ -555,7 +554,7 @@ char FileManager::NextChar()
 Inode* FileManager::MakNode( unsigned int mode )
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 分配一个空闲DiskInode，里面内容已全部清空 */
 	pInode = this->m_FileSystem->IAlloc();
@@ -576,7 +575,7 @@ Inode* FileManager::MakNode( unsigned int mode )
 
 void FileManager::WriteDir( Inode* pInode )
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 设置目录项中Inode编号部分 */
 	u.u_dent.m_ino = pInode->i_number;
@@ -598,7 +597,7 @@ void FileManager::WriteDir( Inode* pInode )
 
 void FileManager::SetCurDir(char* pathname)
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	
 	/* 路径不是从根目录'/'开始，则在现有u.u_curdir后面加上当前路径分量 */
 	if ( pathname[0] != '/' )
@@ -622,7 +621,7 @@ void FileManager::SetCurDir(char* pathname)
  */
 int FileManager::Access( Inode* pInode, unsigned int mode )
 {
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 对于写的权限，必须检查该文件系统是否是只读的 */
 	if ( Inode::IWRITE == mode )
@@ -667,7 +666,7 @@ void FileManager::Link()
 {
 	Inode* pInode;
 	Inode* pNewInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	pInode = this->NameI(FileManager::NextChar, FileManager::OPEN);
 	/* 打卡文件失败 */
@@ -730,7 +729,7 @@ void FileManager::UnLink()
 {
 	Inode* pInode;
 	Inode* pDeleteInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	pDeleteInode = this->NameI(FileManager::NextChar, FileManager::DELETE);
 	if ( NULL == pDeleteInode )
@@ -776,7 +775,7 @@ void FileManager::UnLink()
 void FileManager::MkNod()
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 检查uid是否是root，该系统调用只有uid==root时才可被调用 */
 	if ( u.SUser() )
@@ -820,7 +819,7 @@ using namespace std;
 void FileManager::ChDir()
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	pInode = this->NameI(FileManager::NextChar,FileManager::OPEN);
 	if (NULL == pInode)

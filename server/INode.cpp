@@ -1,5 +1,5 @@
 #include "INode.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include "User.h"
 #include<algorithm>
 #include<string.h>	//memcpy
@@ -53,8 +53,8 @@ void Inode::ReadI()
 	int nbytes;	/* 传送至用户目标区字节数量 */
 	//short dev;
 	Buf* pBuf;
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 	if( 0 == u.u_IOParam.m_Count )
 	{
 		/* 需要读字节数为零，则返回 */
@@ -110,8 +110,8 @@ void Inode::WriteI()
 	int nbytes;	/* 传送字节数量 */
 	//short dev;
 	Buf* pBuf;
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 	/* 设置Inode被访问标志位 */
 	this->i_flag |= (Inode::IACC | Inode::IUPD);
 	if( 0 == u.u_IOParam.m_Count)
@@ -188,9 +188,9 @@ int Inode::Bmap(int lbn)
 	int phyBlkno;	/* 转换后的物理盘块号 */
 	int* iTable;	/* 用于访问索引盘块中一次间接、两次间接索引表 */
 	int index;
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
-	FileSystem& fileSys = SecondFileKernel::Instance().GetFileSystem();
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
+	FileSystem& fileSys = Kernel::Instance().GetFileSystem();
 	
 	/* 
 	 * Unix V6++的文件索引结构：(小型、大型和巨型文件)
@@ -355,8 +355,8 @@ void Inode::IUpdate(int time)
 {
 	Buf* pBuf;
 	DiskInode dInode;
-	FileSystem& filesys = SecondFileKernel::Instance().GetFileSystem();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
+	FileSystem& filesys = Kernel::Instance().GetFileSystem();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 
 	/* 当IUPD和IACC标志之一被设置，才需要更新相应DiskInode
 	 * 目录搜索，不会设置所途径的目录文件的IACC和IUPD标志 */
@@ -410,9 +410,9 @@ void Inode::IUpdate(int time)
 void Inode::ITrunc()
 {
 	/* 经由磁盘高速缓存读取存放一次间接、两次间接索引表的磁盘块 */
-	BufferManager& bm = SecondFileKernel::Instance().GetBufferManager();
+	BufferManager& bm = Kernel::Instance().GetBufferManager();
 	/* 获取g_FileSystem对象的引用，执行释放磁盘块的操作 */
-	FileSystem& filesys = SecondFileKernel::Instance().GetFileSystem();
+	FileSystem& filesys = Kernel::Instance().GetFileSystem();
 
 	/* 如果是字符设备或者块设备则退出 */
 	// if( this->i_mode & (Inode::IFCHR & Inode::IFBLK) )

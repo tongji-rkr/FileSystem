@@ -1,6 +1,5 @@
-//kyf
 #include "OpenFileManager.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include "INode.h"
 #include <chrono>  
 #include <time.h>
@@ -23,7 +22,7 @@ OpenFileTable::~OpenFileTable()
 File* OpenFileTable::FAlloc()
 {
 	int fd;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	/* 在进程打开文件描述符表中获取一个空闲项 */
 	fd = u.u_ofiles.AllocFreeSlot();
@@ -55,17 +54,6 @@ File* OpenFileTable::FAlloc()
 
 void OpenFileTable::CloseF(File *pFile)
 {
-	//Inode* pNode;
-	//ProcessManager& procMgr = SecondFileKernel::Instance().GetProcessManager();
-
-	// /* 管道类型 */
-	// if(pFile->f_flag & File::FPIPE)
-	// {
-	// 	pNode = pFile->f_inode;
-	// 	pNode->i_mode &= ~(Inode::IREAD | Inode::IWRITE);
-	// 	//procMgr.WakeUpAll((unsigned long)(pNode + 1));
-	// 	//procMgr.WakeUpAll((unsigned long)(pNode + 2));
-	// }
 
 	if(pFile->f_count <= 1)
 	{
@@ -98,13 +86,13 @@ InodeTable::~InodeTable()
 void InodeTable::Initialize()
 {
 	/* 获取对g_FileSystem的引用 */
-	this->m_FileSystem = &SecondFileKernel::Instance().GetFileSystem();
+	this->m_FileSystem = &Kernel::Instance().GetFileSystem();
 }
 
 Inode* InodeTable::IGet(int inumber)
 {
 	Inode* pInode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 
 	while(true)
 	{
@@ -174,7 +162,7 @@ Inode* InodeTable::IGet(int inumber)
 				pInode->i_count++;
 				pInode->i_lastr = -1;
 
-				BufferManager& bm = SecondFileKernel::Instance().GetBufferManager();
+				BufferManager& bm = Kernel::Instance().GetBufferManager();
 				/* 将该外存Inode读入缓冲区 */
 				Buf* pBuf = bm.Bread(FileSystem::INODE_ZONE_START_SECTOR + inumber / FileSystem::INODE_NUMBER_PER_SECTOR );
 

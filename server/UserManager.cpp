@@ -1,4 +1,4 @@
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 #include "UserManager.h"
 
 UserManager::UserManager()
@@ -67,14 +67,14 @@ bool UserManager::Login(string uname)
     pusers[i]->u_cdir->NFrele();
     strcpy(pusers[i]->u_curdir, "/");
     // 2. 尝试创建家目录
-    SecondFileKernel::Instance().Sys_CreatDir(uname);
+    Kernel::Instance().Sys_CreatDir(uname);
     // 3. 转到家目录
     pusers[i]->u_error = NOERROR;
     char dirname[512] = {0};
     strcpy(dirname, uname.c_str());
     pusers[i]->u_dirp = dirname;
     pusers[i]->u_arg[0] = (unsigned long long)(dirname);
-    FileManager &fimanag = SecondFileKernel::Instance().GetFileManager();
+    FileManager &fimanag = Kernel::Instance().GetFileManager();
     fimanag.ChDir();
     return true;
 }
@@ -82,7 +82,7 @@ bool UserManager::Login(string uname)
 bool UserManager::Logout()
 {
     // 将系统更新至磁盘
-    SecondFileKernel::Instance().Quit();
+    Kernel::Instance().Quit();
 
     // 取得线程 id
     pthread_t pthread_id = pthread_self();

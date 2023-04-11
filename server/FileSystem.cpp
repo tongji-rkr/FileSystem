@@ -1,9 +1,8 @@
-//fqh
 #include <string.h>
 #include "time.h"
 #include "User.h"
 #include "FileSystem.h"
-#include "SecondFileKernel.h"
+#include "Kernel.h"
 
 /*==============================class SuperBlock===================================*/
 /* 系统全局超级块SuperBlock对象 */
@@ -36,14 +35,14 @@ FileSystem::~FileSystem()
 
 void FileSystem::Initialize()
 {
-	this->m_BufferManager = &SecondFileKernel::Instance().GetBufferManager();
+	this->m_BufferManager = &Kernel::Instance().GetBufferManager();
 	this->updlock = 0;
 }
 
 void FileSystem::LoadSuperBlock()
 {
-	User& u = SecondFileKernel::Instance().GetUser();
-	BufferManager& bufMgr = SecondFileKernel::Instance().GetBufferManager();
+	User& u = Kernel::Instance().GetUser();
+	BufferManager& bufMgr = Kernel::Instance().GetBufferManager();
 	Buf* pBuf;
 
 	// 读入磁盘上的两个扇区
@@ -150,7 +149,7 @@ Inode* FileSystem::IAlloc()
 	SuperBlock* sb;
 	Buf* pBuf;
 	Inode* pNode;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	int ino;	/* 分配到的空闲外存Inode编号 */
 
 	/* 获取相应设备的SuperBlock内存副本 */
@@ -315,7 +314,7 @@ Buf* FileSystem::Alloc()
 	int blkno;	/* 分配到的空闲磁盘块编号 */
 	SuperBlock* sb;
 	Buf* pBuf;
-	User& u = SecondFileKernel::Instance().GetUser();
+	User& u = Kernel::Instance().GetUser();
 	//pthread_mutex_t p_mutex;
 	//pthread_mutex_init(&p_mutex, NULL);
 	/* 获取SuperBlock对象的内存副本 */
@@ -404,7 +403,7 @@ void FileSystem::Free(int blkno)
 {
 	SuperBlock* sb;
 	Buf* pBuf;
-	//User& u = SecondFileKernel::Instance().GetUser();
+	//User& u = Kernel::Instance().GetUser();
 
 	sb = this->GetFS();
 	sb->s_fmod = 1;
