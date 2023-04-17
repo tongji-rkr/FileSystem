@@ -66,14 +66,14 @@ void RemoteClient::receive_message()
     }
 
     // receive the message
-    int numbytes = recv(this->fd, this->receive_buffer, MAX_PACKAGE_LENGTH, 0);
-    if (numbytes == 0)
+    int received_size = recv(this->fd, this->receive_buffer, MAX_PACKAGE_LENGTH, 0);
+    if (received_size == 0)
     {
         cout << "[NETWORK] server closed, client quit." << endl;
         this->status = DISCONNECTED;
         return;
     }
-    if (numbytes == -1)
+    if (received_size == -1)
     {
         if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
         {
@@ -87,11 +87,17 @@ void RemoteClient::receive_message()
             return;
         }
     }
-    if (numbytes > 0)
+    if (received_size > 0)
     {
-        cout << "[NETWORK] receive message from server of " << numbytes << " bytes" << endl;
-        this->receive_buffer[numbytes] = 0;
-        cout << this->receive_buffer;
+        cout << "[NETWORK] receive message from server of " << received_size << " bytes" << endl;
+
+        // print the message
+        cout << "======================Message=========================="<< endl;
+        cout << this->receive_buffer << endl;
+        cout << "======================================================="<< endl;
+
+        this->receive_buffer[received_size] = 0;
+        // cout << this->receive_buffer;
     }
 
     // call the callback function
@@ -146,7 +152,7 @@ int RemoteClient::run(const std::string &ip, const unsigned int port)
             cout << "[NETWORK] connect to server successfully." << endl;
             break;
         }
-        if (cnt > 5)
+        if (cnt > TIME_OUT)
         {
             cout << "[NETWORK] connect failed, client quit." << endl;
             return -1;

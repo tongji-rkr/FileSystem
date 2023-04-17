@@ -97,7 +97,8 @@ void *start_routine( void *ptr)
     // 初始化用户User结构和目录
     Kernel::Instance().GetUserManager().Login(username);
 
-    string tipswords="||SecondFileSystem@"+username+"请输入函数名及参数$";
+    // show the prompt with username and current directory
+    string tipswords=username+"@FileSystem:"+Kernel::Instance().GetUserManager().GetUser()->u_curdir+"$";
     while(true){
         char buf_recv[1024]={0};
         

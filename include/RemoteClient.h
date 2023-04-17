@@ -16,6 +16,7 @@
 #include <strings.h>
 
 #define MAX_PACKAGE_LENGTH 1024 // the max length of a package
+#define TIME_OUT 3 // the time out of the socket
 
 class RemoteClient : public ClientInterface
 {
@@ -32,7 +33,6 @@ public:
 
 private:
     int fd;
-    enum {CONNECTED, DISCONNECTED} status=DISCONNECTED;
     struct sockaddr_in server_addr;
     char receive_buffer[MAX_PACKAGE_LENGTH] = {0};
     char send_buffer[MAX_PACKAGE_LENGTH] = {0};

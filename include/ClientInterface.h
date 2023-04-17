@@ -17,6 +17,16 @@ public:
     {
         recv_callback = callback;
     }
+
+    bool is_closed()
+    {
+        return status == DISCONNECTED;
+    }
+    bool is_connected()
+    {
+        return status == CONNECTED;
+    }
 protected:
     void (*recv_callback)(const std::string &);
+    enum {CONNECTED, DISCONNECTED} status=DISCONNECTED;
 };

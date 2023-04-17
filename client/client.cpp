@@ -173,7 +173,7 @@ RemoteClient client;
 
 void receive_message_handler(const string& message)
 {
-    cout << message;
+    cout<<message;
     // prepare the message to send
     string send_message;
     getline(cin, send_message);
@@ -185,11 +185,7 @@ void receive_message_handler(const string& message)
     client.send_message(send_message);
 }
 
-int main()
-{
-    // show welcome string
-    cout << welcome_string << endl;
-
+string get_ip_address(){
     // get the ip and port from the input
     string ipaddr;
     cout << "Please input the ip address of the server (default:127.0.0.1): ";
@@ -198,33 +194,50 @@ int main()
     {
         ipaddr = "127.0.0.1";
     }
+    return ipaddr;
+}
 
+unsigned int get_port(){
     // get the port from the input
+    string temp;
     unsigned int port;
     cout << "Please input the port of the server (default:8888): ";
-    getline(cin, ipaddr);
-    if (ipaddr.empty())
+    getline(cin, temp);
+    if (temp.empty())
     {
         port = 8888;
     }
     else
     {
-        port = atoi(ipaddr.c_str());
+        port = atoi(temp.c_str());
     }
-    
+    return port;
+}
 
+int main()
+{
+    // show welcome string
+    cout << welcome_string << endl;
+
+    string ipaddr = get_ip_address();
+    unsigned int port = get_port();
     
-    
+    // set the callback function
     client.bind_recv_callback(receive_message_handler);
 
     if(client.run(ipaddr, port)==-1)
     {
+        // error occured when running
         return 0;
     }
     
+    // service loop
     while(1)
     {
         client.receive_message();
+        if(client.is_closed()){
+            break;
+        }
     }
     return 0;
 }
