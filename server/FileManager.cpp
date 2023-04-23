@@ -121,6 +121,7 @@ void FileManager::Open1(Inode* pInode, int mode, int trf)
 	}
 	if ( u.u_error )
 	{
+		cout<<u.u_error<<endl;
 		cout<<"u_error in Open1"<<endl;
 		this->m_InodeTable->IPut(pInode);
 		return;

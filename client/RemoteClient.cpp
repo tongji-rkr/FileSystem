@@ -50,9 +50,9 @@ void RemoteClient::send_message(const std::string &msg)
         cout << "[NETWORK] send message to server of " << numbytes << " bytes" << endl;
         
         // print the message
-        cout << "======================Message=========================="<< endl;
-        cout << message << endl;
-        cout << "======================================================="<< endl;
+        // cout << "======================Message out======================="<< endl;
+        // cout << message << endl;
+        // cout << "======================================================="<< endl;
     }
 }
 
@@ -86,15 +86,16 @@ void RemoteClient::receive_message()
             // no message received, do nothing
             return;
         }
+        cout<<"[NETWORK] no message received"<<endl;
     }
     if (received_size > 0)
     {
         cout << "[NETWORK] receive message from server of " << received_size << " bytes" << endl;
 
         // print the message
-        cout << "======================Message=========================="<< endl;
-        cout << this->receive_buffer << endl;
-        cout << "======================================================="<< endl;
+        // cout << "======================Message in======================="<< endl;
+        // cout << this->receive_buffer << endl;
+        // cout << "======================================================="<< endl;
 
         this->receive_buffer[received_size] = 0;
         // cout << this->receive_buffer;
@@ -132,14 +133,14 @@ int RemoteClient::run(const std::string &ip, const unsigned int port)
     inet_pton(AF_INET, ip.c_str(), &this->server_addr.sin_addr);
 
     // set the socket to non-blocking
-    int flags = fcntl(this->fd, F_GETFL, 0);
-    flags |= O_NONBLOCK;
-    if (fcntl(this->fd, F_SETFL, flags) < 0)
-    {
-        cout << "[NETWORK] set flags error" << endl;
-        close(this->fd);
-        return -1;
-    }
+    // int flags = fcntl(this->fd, F_GETFL, 0);
+    // flags |= O_NONBLOCK;
+    // if (fcntl(this->fd, F_SETFL, flags) < 0)
+    // {
+    //     cout << "[NETWORK] set flags error" << endl;
+    //     close(this->fd);
+    //     return -1;
+    // }
 
     // try to connect the server
     int cnt = 1;
