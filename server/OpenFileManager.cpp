@@ -1,7 +1,7 @@
 #include "OpenFileManager.h"
 #include "Kernel.h"
 #include "INode.h"
-#include <chrono>  
+#include <chrono>
 #include <time.h>
 
 /*==============================class OpenFileTable===================================*/
@@ -10,32 +10,32 @@ OpenFileTable g_OpenFileTable;
 
 OpenFileTable::OpenFileTable()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 OpenFileTable::~OpenFileTable()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 /*作用：进程打开文件描述符表中找的空闲项  之 下标  写入 u_ar0[EAX]*/
-File* OpenFileTable::FAlloc()
+File *OpenFileTable::FAlloc()
 {
 	int fd;
-	User& u = Kernel::Instance().GetUser();
+	User &u = Kernel::Instance().GetUser();
 
 	/* 在进程打开文件描述符表中获取一个空闲项 */
 	fd = u.u_ofiles.AllocFreeSlot();
 
-	if(fd < 0)	/* 如果寻找空闲项失败 */
+	if (fd < 0) /* 如果寻找空闲项失败 */
 	{
 		return NULL;
 	}
 
-	for(int i = 0; i < OpenFileTable::NFILE; i++)
+	for (int i = 0; i < OpenFileTable::NFILE; i++)
 	{
 		/* f_count==0表示该项空闲 */
-		if(this->m_File[i].f_count == 0)
+		if (this->m_File[i].f_count == 0)
 		{
 			/* 建立描述符和File结构的勾连关系 */
 			u.u_ofiles.SetF(fd, &this->m_File[i]);
@@ -55,13 +55,13 @@ File* OpenFileTable::FAlloc()
 void OpenFileTable::CloseF(File *pFile)
 {
 
-	if(pFile->f_count <= 1)
+	if (pFile->f_count <= 1)
 	{
-		/* 
+		/*
 		 * 如果当前进程是最后一个引用该文件的进程，
 		 * 对特殊块设备、字符设备文件调用相应的关闭函数
 		 */
-		//pFile->f_inode->CloseI(pFile->f_flag & File::FWRITE);
+		// pFile->f_inode->CloseI(pFile->f_flag & File::FWRITE);
 		g_InodeTable.IPut(pFile->f_inode);
 	}
 
@@ -75,12 +75,12 @@ InodeTable g_InodeTable;
 
 InodeTable::InodeTable()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 InodeTable::~InodeTable()
 {
-	//nothing to do here
+	// nothing to do here
 }
 
 void InodeTable::Initialize()
@@ -89,30 +89,30 @@ void InodeTable::Initialize()
 	this->m_FileSystem = &Kernel::Instance().GetFileSystem();
 }
 
-Inode* InodeTable::IGet(int inumber)
+Inode *InodeTable::IGet(int inumber)
 {
-	Inode* pInode;
-	User& u = Kernel::Instance().GetUser();
+	Inode *pInode;
+	User &u = Kernel::Instance().GetUser();
 
-	while(true)
+	while (true)
 	{
 		/* 检查指定设备dev中编号为inumber的外存Inode是否有内存拷贝 */
 		int index = this->IsLoaded(inumber);
-		if(index >= 0)	/* 找到内存拷贝 */
+		if (index >= 0) /* 找到内存拷贝 */
 		{
 			pInode = &(this->m_Inode[index]);
 			/* 如果该内存Inode被上锁 */
-			//printf("[IGET]上锁pInode: index=%d i_number=%d\n",index, pInode->i_number);
+			// printf("[IGET]上锁pInode: index=%d i_number=%d\n",index, pInode->i_number);
 			pthread_mutex_lock(&pInode->mutex);
-			//if( pInode->i_flag & Inode::ILOCK )
+			// if( pInode->i_flag & Inode::ILOCK )
 			//{
-				/* 增设IWANT标志，然后睡眠 */
-				//pInode->i_flag |= Inode::IWANT;
-				
-				//u.u_procp->Sleep((unsigned long)&pInode, ProcessManager::PINOD);
-				
-				/* 回到while循环，需要重新搜索，因为该内存Inode可能已经失效 */
-				//continue;
+			/* 增设IWANT标志，然后睡眠 */
+			// pInode->i_flag |= Inode::IWANT;
+
+			// u.u_procp->Sleep((unsigned long)&pInode, ProcessManager::PINOD);
+
+			/* 回到while循环，需要重新搜索，因为该内存Inode可能已经失效 */
+			// continue;
 			//}
 
 			/* 如果该内存Inode用于连接子文件系统，查找该Inode对应的Mount装配块 */
@@ -134,7 +134,7 @@ Inode* InodeTable::IGet(int inumber)
 			// 	}
 			// }
 
-			/* 
+			/*
 			 * 程序执行到这里表示：内存Inode高速缓存中找到相应内存Inode，
 			 * 增加其引用计数，增设ILOCK标志并返回之
 			 */
@@ -142,17 +142,17 @@ Inode* InodeTable::IGet(int inumber)
 			pInode->i_flag |= Inode::ILOCK;
 			return pInode;
 		}
-		else	/* 没有Inode的内存拷贝，则分配一个空闲内存Inode */
+		else /* 没有Inode的内存拷贝，则分配一个空闲内存Inode */
 		{
 			pInode = this->GetFreeInode();
 			/* 若内存Inode表已满，分配空闲Inode失败 */
-			if(NULL == pInode)
+			if (NULL == pInode)
 			{
 				printf("[error]Inode Table Overflow !\n");
 				u.u_error = ENFILE;
 				return NULL;
 			}
-			else	/* 分配空闲Inode成功，将外存Inode读入新分配的内存Inode */
+			else /* 分配空闲Inode成功，将外存Inode读入新分配的内存Inode */
 			{
 				/* 设置新的设备号、外存Inode编号，增加引用计数，对索引节点上锁 */
 				// pInode->i_dev = dev;
@@ -162,12 +162,12 @@ Inode* InodeTable::IGet(int inumber)
 				pInode->i_count++;
 				pInode->i_lastr = -1;
 
-				BufferManager& bm = Kernel::Instance().GetBufferManager();
+				BufferManager &bm = Kernel::Instance().GetBufferManager();
 				/* 将该外存Inode读入缓冲区 */
-				Buf* pBuf = bm.Bread(FileSystem::INODE_ZONE_START_SECTOR + inumber / FileSystem::INODE_NUMBER_PER_SECTOR );
+				Buf *pBuf = bm.Bread(FileSystem::INODE_ZONE_START_SECTOR + inumber / FileSystem::INODE_NUMBER_PER_SECTOR);
 
 				/* 如果发生I/O错误 */
-				if(pBuf->b_flags & Buf::B_ERROR)
+				if (pBuf->b_flags & Buf::B_ERROR)
 				{
 					/* 释放缓存 */
 					bm.Brelse(pBuf);
@@ -184,7 +184,7 @@ Inode* InodeTable::IGet(int inumber)
 			}
 		}
 	}
-	return NULL;	/* GCC likes it! */
+	return NULL; /* GCC likes it! */
 }
 
 /* close文件时会调用Iput
@@ -199,16 +199,16 @@ void InodeTable::IPut(Inode *pNode)
 {
 
 	/* 当前进程为引用该内存Inode的唯一进程，且准备释放该内存Inode */
-	if(pNode->i_count == 1)
+	if (pNode->i_count == 1)
 	{
-		/* 
+		/*
 		 * 上锁，因为在整个释放过程中可能因为磁盘操作而使得该进程睡眠，
 		 * 此时有可能另一个进程会对该内存Inode进行操作，这将有可能导致错误。
 		 */
 		pNode->i_flag |= Inode::ILOCK;
 
 		/* 该文件已经没有目录路径指向它 */
-		if(pNode->i_nlink <= 0)
+		if (pNode->i_nlink <= 0)
 		{
 			/* 释放该文件占据的数据盘块 */
 			pNode->ITrunc();
@@ -218,10 +218,10 @@ void InodeTable::IPut(Inode *pNode)
 		}
 
 		/* 更新外存Inode信息 */
-		//pNode->IUpdate(Time::time);
+		// pNode->IUpdate(Time::time);
 		time_t timestamp;
 		pNode->IUpdate(time(&timestamp));
-		
+
 		/* 解锁内存Inode，并且唤醒等待进程 */
 		pNode->NFrele();
 		/* 清除内存Inode的所有标志位 */
@@ -237,13 +237,13 @@ void InodeTable::IPut(Inode *pNode)
 
 void InodeTable::UpdateInodeTable()
 {
-	for(int i = 0; i < InodeTable::NINODE; i++)
+	for (int i = 0; i < InodeTable::NINODE; i++)
 	{
-		/* 
+		/*
 		 * 如果Inode对象没有被上锁，即当前未被其它进程使用，可以同步到外存Inode；
 		 * 并且count不等于0，count == 0意味着该内存Inode未被任何打开文件引用，无需同步。
 		 */
-		if( (this->m_Inode[i].i_flag & Inode::ILOCK) == 0 && this->m_Inode[i].i_count != 0 )
+		if ((this->m_Inode[i].i_flag & Inode::ILOCK) == 0 && this->m_Inode[i].i_count != 0)
 		{
 			/* 将内存Inode上锁后同步到外存Inode */
 			this->m_Inode[i].i_flag |= Inode::ILOCK;
@@ -259,25 +259,25 @@ void InodeTable::UpdateInodeTable()
 int InodeTable::IsLoaded(int inumber)
 {
 	/* 寻找指定外存Inode的内存拷贝 */
-	for(int i = 0; i < InodeTable::NINODE; i++)
+	for (int i = 0; i < InodeTable::NINODE; i++)
 	{
-		if(this->m_Inode[i].i_number == inumber && this->m_Inode[i].i_count != 0 )
+		if (this->m_Inode[i].i_number == inumber && this->m_Inode[i].i_count != 0)
 		{
-			return i;	
+			return i;
 		}
 	}
 	return -1;
 }
 
-Inode* InodeTable::GetFreeInode()
+Inode *InodeTable::GetFreeInode()
 {
-	for(int i = 0; i < InodeTable::NINODE; i++)
+	for (int i = 0; i < InodeTable::NINODE; i++)
 	{
 		/* 如果该内存Inode引用计数为零，则该Inode表示空闲 */
-		if(this->m_Inode[i].i_count == 0)
+		if (this->m_Inode[i].i_count == 0)
 		{
 			return &(this->m_Inode[i]);
 		}
 	}
-	return NULL;	/* 寻找失败 */
+	return NULL; /* 寻找失败 */
 }

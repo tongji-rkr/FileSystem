@@ -340,6 +340,7 @@ Inode* FileManager::NameI( char (*func)(), enum DirectorySearchMode mode )
 		/* 如果出错则释放当前搜索到的目录文件Inode，并退出 */
 		if ( u.u_error !=  NOERROR )
 		{
+			cout<<"error code in NameI:"<<u.u_error<<endl;
 		    cout<<"u_error in NameI"<<endl;
 			break;	/* goto out; */
 		}

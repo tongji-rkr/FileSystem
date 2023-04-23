@@ -181,8 +181,15 @@ void receive_message_handler(const string& message)
     {
         send_message = " ";
     }
+
     // send the message to server
     client.send_message(send_message);
+
+    // check whether it is q or Q
+    if (send_message == "q" || send_message == "Q")
+    {
+        client.stop();
+    }
 }
 
 string get_ip_address(){

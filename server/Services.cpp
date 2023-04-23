@@ -16,6 +16,7 @@ map<string, stringstream (Services::*)(stringstream &)> Services::command_servic
     {"cat", &Services::cat_service},
     {"upload", &Services::upload_service},
     {"download", &Services::download_service}};
+    
 
 stringstream Services::open_service(stringstream &ss)
 {
@@ -25,8 +26,8 @@ stringstream Services::open_service(stringstream &ss)
     ss >> param1 >> param2;
     if (param1 == "" || param2 == "")
     {
-        send_str << "open [fpath] [mode]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "open [filename] [mode]\n";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     string fpath = param1;
@@ -40,7 +41,7 @@ stringstream Services::open_service(stringstream &ss)
     // 调用
     FD fd = Kernel::Instance().Sys_Open(fpath, mode);
     // 打印结果
-    send_str << "[ 结 果 ]:\n"
+    send_str << "[ return ]:\n"
              << "fd=" << fd << endl;
     return send_str;
 }
@@ -53,23 +54,23 @@ stringstream Services::close_service(stringstream &ss)
     if (p1_fd == "")
     {
         send_str << "close [fd]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     if (!Utility::is_number(p1_fd))
     {
-        send_str << "[fd] 参数错误" << endl;
+        send_str << "[fd] should be a number" << endl;
         return send_str;
     }
     int fd = atoi(p1_fd.c_str());
     if (fd < 0)
     {
-        send_str << "[fd] fd应当为正整数" << endl;
+        send_str << "[fd] fd should be positive" << endl;
         return send_str;
     }
     // 调用 API
     int ret = Kernel::Instance().Sys_Close(fd);
-    send_str << "[ 结 果 ]\n"
+    send_str << "[ return ]\n"
              << "ret=" << ret << endl;
     return send_str;
 }
@@ -82,34 +83,34 @@ stringstream Services::read_service(stringstream &ss)
     ss >> p1_fd >> p2_size;
     if (p1_fd == "" || p2_size == "")
     {
-        send_str << "read [fd] [size]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "read [fd] [length]\n";
+        send_str << "invalid arguments" << endl;
 
         return send_str;
     }
     if (!Utility::is_number(p1_fd))
     {
-        send_str << "[fd] 参数错误" << endl;
+        send_str << "[fd] should be a number" << endl;
 
         return send_str;
     }
     if (!Utility::is_number(p2_size))
     {
-        send_str << "[size] 参数错误" << endl;
+        send_str << "[length] should be a number" << endl;
 
         return send_str;
     }
     int fd = atoi(p1_fd.c_str());
     if (fd < 0)
     {
-        send_str << "[fd] 应当为正整数" << endl;
+        send_str << "[fd] should be positive" << endl;
 
         return send_str;
     }
     int size = atoi(p2_size.c_str());
     if (size <= 0 || size > 1024)
     {
-        send_str << "[size] size 的取值范围是(0,1024]." << endl;
+        send_str << "[length] valid range:(0,1024]" << endl;
 
         return send_str;
     }
@@ -118,7 +119,7 @@ stringstream Services::read_service(stringstream &ss)
     memset(buf, 0, sizeof(buf));
     int ret = Kernel::Instance().Sys_Read(fd, size, 1025, buf);
     // 结果返回
-    send_str << "[ 结 果 ]:\n"
+    send_str << "[ return ]:\n"
              << "ret=" << ret << endl
              << buf << endl;
 
@@ -133,24 +134,24 @@ stringstream Services::write_service(stringstream &ss)
     ss >> p1_fd >> p2_content;
     if (p1_fd == "")
     {
-        send_str << "write [fd] [content]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "write [fd] [text]\n";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     if (!Utility::is_number(p1_fd))
     {
-        send_str << "[fd] 参数错误" << endl;
+        send_str << "[fd] should be a number" << endl;
         return send_str;
     }
     int fd = atoi(p1_fd.c_str());
     if (fd < 0)
     {
-        send_str << "[fd] 应当为正整数" << endl;
+        send_str << "[fd] should be positive" << endl;
         return send_str;
     }
     if (p2_content.length() > 1024)
     {
-        send_str << "[content] 内容过长（不超过1024字节）" << endl;
+        send_str << "[text] text is too long" << endl;
         return send_str;
     }
     char buf[1025];
@@ -160,7 +161,7 @@ stringstream Services::write_service(stringstream &ss)
     // 调用 API
     int ret = Kernel::Instance().Sys_Write(fd, size, 1024, buf);
     // 打印结果
-    send_str << "[ 结 果 ]\n"
+    send_str << "[ return ]\n"
              << "ret=" << ret << endl;
     return send_str;
 }
@@ -172,8 +173,8 @@ stringstream Services::lseek_service(stringstream &ss)
     ss >> fd >> position >> ptrname;
     if (fd == "" || position == "" || ptrname == "")
     {
-        send_str << "seek [fd] [position] [ptrname]";
-        send_str << "参数个数错误" << endl;
+        send_str << "lseek [fd] [position] [ptrname]";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     if (!Utility::is_number(fd))
@@ -216,7 +217,7 @@ stringstream Services::create_service(stringstream &ss)
     if (filename == "")
     {
         send_str << "mkfile [filepath]";
-        send_str << "参数个数错误" << endl;
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     User &u = Kernel::Instance().GetUser();
@@ -241,7 +242,7 @@ stringstream Services::cd_service(stringstream &ss)
     if (param1 == "")
     {
         send_str << "cd [fpath]";
-        send_str << "参数个数错误" << endl;
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     // 调用
@@ -266,8 +267,8 @@ stringstream Services::rm_service(stringstream &ss)
     ss >> filename;
     if (filename == "")
     {
-        send_str << "rm [filepath]";
-        send_str << "参数个数错误" << endl;
+        send_str << "rm [filename]";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     User &u = Kernel::Instance().GetUser();
@@ -302,7 +303,8 @@ stringstream Services::ls_service(stringstream &ss)
             DirectoryEntry *mm = (DirectoryEntry *)buf;
             if (mm->m_ino == 0)
                 continue;
-            send_str << "====== " << mm->m_name << " ======" << endl;
+            send_str << mm->m_name << endl;
+            
             memset(buf, 0, 32);
         }
     }
@@ -317,8 +319,8 @@ stringstream Services::mkdir_service(stringstream &ss)
     ss >> path;
     if (path == "")
     {
-        send_str << "mkdir [dirpath]";
-        send_str << "参数个数错误" << endl;
+        send_str << "mkdir [dirname]";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     send_str << "doing mkdir " << path << endl;
@@ -334,8 +336,8 @@ stringstream Services::cat_service(stringstream &ss)
     ss >> p1_fpath;
     if (p1_fpath == "")
     {
-        send_str << "cat [fpath]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "cat [filename]\n";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     string fpath = p1_fpath;
@@ -371,15 +373,15 @@ stringstream Services::upload_service(stringstream &ss)
     ss >> p1_ofpath >> p2_ifpath;
     if (p1_ofpath == "" || p2_ifpath == "")
     {
-        send_str << "upload ofpath ifpath\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "upload [localpath] [remotepath]\n";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     // 打开外部文件
     int ofd = open(p1_ofpath.c_str(), O_RDONLY); // 只读方式打开外部文件
     if (ofd < 0)
     {
-        send_str << "[ERROR] 打开文件失败：" << p1_ofpath << endl;
+        send_str << "[ERROR] failed to open file:" << p1_ofpath << endl;
         return send_str;
     }
     // 创建内部文件
@@ -388,7 +390,7 @@ stringstream Services::upload_service(stringstream &ss)
     if (ifd < 0)
     {
         close(ofd);
-        send_str << "[ERROR] 打开文件失败：" << p2_ifpath << endl;
+        send_str << "[ERROR] failed to open file:" << p2_ifpath << endl;
         return send_str;
     }
     // 开始拷贝，一次 256 字节
@@ -408,13 +410,13 @@ stringstream Services::upload_service(stringstream &ss)
             Kernel::Instance().Sys_Write(ifd, read_num, 256, buf);
         if (write_num <= 0)
         {
-            send_str << "[ERROR] 写入文件失败：" << p2_ifpath;
+            send_str << "[ERROR] failed to write:" << p2_ifpath;
             break;
         }
         all_write_num += write_num;
     }
-    send_str << "共读取字节：" << all_read_num
-             << " 共写入字节：" << all_write_num << endl;
+    send_str << "Bytes read:" << all_read_num
+             << "Bytes written:" << all_write_num << endl;
     close(ofd);
     Kernel::Instance().Sys_Close(ifd);
     return send_str;
@@ -428,15 +430,15 @@ stringstream Services::download_service(stringstream &ss)
     ss >> p1_ifpath >> p2_ofpath;
     if (p1_ifpath == "" || p2_ofpath == "")
     {
-        send_str << "copyout [ifpath] [ofpath]\n";
-        send_str << "参数个数错误" << endl;
+        send_str << "download [remotepath] [localpath]\n";
+        send_str << "invalid arguments" << endl;
         return send_str;
     }
     // 创建外部文件
-    int ofd = open(p2_ofpath.c_str(), O_WRONLY | O_TRUNC | O_CREAT); // 截断写入方式打开外部文件
+    int ofd = open(p2_ofpath.c_str(), O_WRONLY | O_TRUNC | O_CREAT,777); // 截断写入方式打开外部文件
     if (ofd < 0)
     {
-        send_str << "[ERROR] 创建文件失败：" << p2_ofpath << endl;
+        send_str << "[ERROR] failed to create file:" << p2_ofpath << endl;
         return send_str;
     }
     // 打开内部文件
@@ -444,7 +446,7 @@ stringstream Services::download_service(stringstream &ss)
     if (ifd < 0)
     {
         close(ofd);
-        send_str << "[ERROR] 打开文件失败：" << p1_ifpath << endl;
+        send_str << "[ERROR] failed to open file:" << p1_ifpath << endl;
         return send_str;
     }
     // 开始拷贝，一次 256 字节
@@ -464,13 +466,13 @@ stringstream Services::download_service(stringstream &ss)
         int write_num = write(ofd, buf, read_num);
         if (write_num <= 0)
         {
-            send_str << "[ERROR] 写入文件失败：" << p1_ifpath;
+            send_str << "[ERROR] failed to write:" << p1_ifpath;
             break;
         }
         all_write_num += write_num;
     }
-    send_str << "共读取字节：" << all_read_num
-             << " 共写入字节：" << all_write_num << endl;
+    send_str << "Bytes read:" << all_read_num
+             << "Bytes written:" << all_write_num << endl;
     close(ofd);
     Kernel::Instance().Sys_Close(ifd);
     return send_str;
