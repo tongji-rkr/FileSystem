@@ -301,8 +301,8 @@ stringstream Services::ls_service(stringstream &ss)
             // send_str << "cur_path:" << cur_path << endl << "buf:" << buf;
             DirectoryEntry *mm = (DirectoryEntry *)buf;
             if (mm->m_ino == 0)
-
-                send_str << "====== " << mm->m_name << " ======" << endl;
+                continue;
+            send_str << "====== " << mm->m_name << " ======" << endl;
             memset(buf, 0, 32);
         }
     }

@@ -20,6 +20,7 @@
 #include <map>
 #include "RemoteServer.h"
 #include "Services.h"
+#include "Kernel.h"
 #define PORT 8888
 #define BACKLOG 128
 
