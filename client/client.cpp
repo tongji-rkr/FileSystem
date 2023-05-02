@@ -171,12 +171,50 @@ RemoteClient client;
 //     return 0;
 // }
 
+// 定义一个函数，用于接收用户指令
+string get_command()
+{
+  cout<<"getting command"<<endl;
+  // 定义一个字符串变量，用于存储用户指令
+  string command = "";
+  // 定义一个字符变量，用于存储用户输入的字符
+  char ch;
+  // 循环读取用户输入的字符，直到遇到换行符为止
+  while ((ch = cin.get()) != '\n')
+  {
+    // 如果用户输入的是退格键
+    if (ch == '\b')
+    {
+      // 如果指令不为空
+      if (!command.empty())
+      {
+        // 删除指令最后一个字符
+        command.pop_back();
+        // 输出一个空格和一个退格键，用于清除屏幕上的字符
+        cout << " \b";
+      }
+    }
+    // 否则
+    else
+    {
+      // 将用户输入的字符追加到指令中
+      command += ch;
+      // 输出用户输入的字符
+      cout << ch;
+    }
+  }
+  // 返回用户指令
+  return command;
+}
 void receive_message_handler(const string& message)
 {
     cout<<message;
     // prepare the message to send
     string send_message;
-    getline(cin, send_message);
+    // getline(cin, send_message);
+
+    send_message = get_command();
+
     if (send_message.empty())
     {
         send_message = " ";
