@@ -33,7 +33,7 @@ stringstream Services::open_service(stringstream &ss)
     string fpath = param1;
     if (!Utility::is_number(param2))
     {
-        send_str << "[mode] 参数错误" << endl;
+        send_str << "[mode] invalid" << endl;
         return send_str;
     }
     int mode = atoi(param2.c_str());
@@ -179,19 +179,19 @@ stringstream Services::lseek_service(stringstream &ss)
     }
     if (!Utility::is_number(fd))
     {
-        send_str << "[fd] 参数错误" << endl;
+        send_str << "[fd] invalid" << endl;
         return send_str;
     }
     int fd_int = atoi(fd.c_str());
     if (!Utility::is_number(position))
     {
-        send_str << "[position] 参数错误" << endl;
+        send_str << "[position] invalid" << endl;
         return send_str;
     }
     int position_int = atoi(position.c_str());
     if (!Utility::is_number(ptrname))
     {
-        send_str << "[ptrname] 参数错误" << endl;
+        send_str << "[ptrname] invalid" << endl;
         return send_str;
     }
     int ptrname_int = atoi(ptrname.c_str());
