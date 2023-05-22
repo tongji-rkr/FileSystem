@@ -174,7 +174,7 @@ RemoteClient client;
 // 定义一个函数，用于接收用户指令
 string get_command()
 {
-  cout<<"getting command"<<endl;
+  //   cout<<"getting command"<<endl;
   // 定义一个字符串变量，用于存储用户指令
   string command = "";
   // 定义一个字符变量，用于存储用户输入的字符
