@@ -16,7 +16,6 @@ map<string, stringstream (Services::*)(stringstream &)> Services::command_servic
     {"cat", &Services::cat_service},
     {"upload", &Services::upload_service},
     {"download", &Services::download_service}};
-    
 
 stringstream Services::open_service(stringstream &ss)
 {
@@ -39,9 +38,25 @@ stringstream Services::open_service(stringstream &ss)
     int mode = atoi(param2.c_str());
 
     // 调用
-    FD fd = Kernel::Instance().Sys_Open(fpath, mode);
+    FD fd;
+    fd = Kernel::Instance().Sys_Open(fpath, mode);
+    // try{
+    //     fd = Kernel::Instance().Sys_Open(fpath, mode);
+    // }catch(string& e){
+    //     send_str<<e<<endl;
+    //     return send_str;
+    // }
+    // if(fd==4294967295U){
+    //     send_str<<"[ERROR] open file failed"<<endl;
+    //     return send_str;
+    // }
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     // 打印结果
-    send_str << "[ return ]:\n"
+    send_str << "open success:\n"
              << "fd=" << fd << endl;
     return send_str;
 }
@@ -70,7 +85,12 @@ stringstream Services::close_service(stringstream &ss)
     }
     // 调用 API
     int ret = Kernel::Instance().Sys_Close(fd);
-    send_str << "[ return ]\n"
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
+    send_str << "success:\n"
              << "ret=" << ret << endl;
     return send_str;
 }
@@ -118,6 +138,11 @@ stringstream Services::read_service(stringstream &ss)
     char buf[1025];
     memset(buf, 0, sizeof(buf));
     int ret = Kernel::Instance().Sys_Read(fd, size, 1025, buf);
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     // 结果返回
     send_str << "[ return ]:\n"
              << "ret=" << ret << endl
@@ -161,6 +186,11 @@ stringstream Services::write_service(stringstream &ss)
     // 调用 API
     int ret = Kernel::Instance().Sys_Write(fd, size, 1024, buf);
     // 打印结果
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << "[ return ]\n"
              << "ret=" << ret << endl;
     return send_str;
@@ -204,6 +234,11 @@ stringstream Services::lseek_service(stringstream &ss)
     u.u_arg[2] = ptrname_int;
     FileManager &fimanag = Kernel::Instance().GetFileManager();
     fimanag.Seek();
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << "[Results:]\n"
              << "u.u_ar0=" << u.u_ar0 << endl;
     return send_str;
@@ -230,6 +265,11 @@ stringstream Services::create_service(stringstream &ss)
     u.u_arg[1] = Inode::IRWXU;
     FileManager &fimanag = Kernel::Instance().GetFileManager();
     fimanag.Creat();
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << "mkfile sucess" << endl;
     return send_str;
 }
@@ -253,7 +293,14 @@ stringstream Services::cd_service(stringstream &ss)
     u.u_dirp = dirname;
     u.u_arg[0] = (unsigned long long)(dirname);
     FileManager &fimanag = Kernel::Instance().GetFileManager();
+
     fimanag.ChDir();
+
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     // 打印结果
     send_str << "[result]:\n"
              << "now dir=" << dirname << endl;
@@ -280,6 +327,11 @@ stringstream Services::rm_service(stringstream &ss)
     u.u_dirp = filename_char;
     FileManager &fimanag = Kernel::Instance().GetFileManager();
     fimanag.UnLink();
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << "rm success" << endl;
     return send_str;
 }
@@ -291,6 +343,12 @@ stringstream Services::ls_service(stringstream &ss)
     u.u_error = NOERROR;
     string cur_path = u.u_curdir;
     FD fd = Kernel::Instance().Sys_Open(cur_path, (File::FREAD));
+    // error handle
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << " cur_path:" << cur_path << endl;
     char buf[33] = {0};
     while (1)
@@ -304,7 +362,7 @@ stringstream Services::ls_service(stringstream &ss)
             if (mm->m_ino == 0)
                 continue;
             send_str << mm->m_name << endl;
-            
+
             memset(buf, 0, 32);
         }
     }
@@ -325,6 +383,11 @@ stringstream Services::mkdir_service(stringstream &ss)
     }
     send_str << "doing mkdir " << path << endl;
     int ret = Kernel::Instance().Sys_CreatDir(path);
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     send_str << "mkdir success (ret=" << ret << ")" << endl;
     return send_str;
 }
@@ -343,9 +406,17 @@ stringstream Services::cat_service(stringstream &ss)
     string fpath = p1_fpath;
     // Open
     FD fd = Kernel::Instance().Sys_Open(fpath, 0x1);
+
+    // error handle
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
+
     if (fd < 0)
     {
-        send_str << "[cat] 打开文件出错." << endl;
+        send_str << "cannot open file." << endl;
         return send_str;
     }
     // Read
@@ -360,6 +431,8 @@ stringstream Services::cat_service(stringstream &ss)
         }
         send_str << buf;
     }
+    // add endl
+    send_str<<endl;
     // Close
     Kernel::Instance().Sys_Close(fd);
     return send_str;
@@ -386,7 +459,21 @@ stringstream Services::upload_service(stringstream &ss)
     }
     // 创建内部文件
     Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
+    // error
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << "error occur when create file" << endl;
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     int ifd = Kernel::Instance().Sys_Open(p2_ifpath, 0x1 | 0x2);
+    // error
+    if (Kernel::Instance().GetUser().u_error != 0)
+    {
+        send_str << "error occur when open file" << endl;
+        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+        return send_str;
+    }
     if (ifd < 0)
     {
         close(ofd);
@@ -435,7 +522,11 @@ stringstream Services::download_service(stringstream &ss)
         return send_str;
     }
     // 创建外部文件
-    int ofd = open(p2_ofpath.c_str(), O_WRONLY | O_TRUNC | O_CREAT,777); // 截断写入方式打开外部文件
+    int ofd = open(p2_ofpath.c_str(), O_WRONLY | O_TRUNC | O_CREAT, 777); // 截断写入方式打开外部文件
+    if(Kernel::Instance().GetUser().u_error!=0){
+        send_str<<get_error_msg(Kernel::Instance().GetUser().u_error)<<endl;
+        return send_str;
+    }
     if (ofd < 0)
     {
         send_str << "[ERROR] failed to create file:" << p2_ofpath << endl;
@@ -478,17 +569,135 @@ stringstream Services::download_service(stringstream &ss)
     return send_str;
 }
 
+std::string Services::get_error_msg(int error_code)
+{
+    std::string error_msg;
+    switch (error_code)
+    {
+    case 0:
+        error_msg = "NOERROR";
+        break;
+    case EPERM:
+        error_msg = "operation not permitted";
+        break;
+    case ENOENT:
+        error_msg = "no such file or directory";
+        break;
+    case ESRCH:
+        error_msg = "no such process";
+        break;
+    case EINTR:
+        error_msg = "interrupted system call";
+        break;
+    case EIO:
+        error_msg = "I/O error";
+        break;
+    case ENXIO:
+        error_msg = "no such device or address";
+        break;
+    case E2BIG:
+        error_msg = "argument list too long";
+        break;
+    case ENOEXEC:
+        error_msg = "exec format error";
+        break;
+    case EBADF:
+        error_msg = "bad file number";
+        break;
+    case ECHILD:
+        error_msg = "no child processes";
+        break;
+    case EAGAIN:
+        error_msg = "try again";
+        break;
+    case ENOMEM:
+        error_msg = "out of memory";
+        break;
+    case EACCES:
+        error_msg = "permission denied";
+        break;
+    case EFAULT:
+        error_msg = "bad address";
+        break;
+    case ENOTBLK:
+        error_msg = "block device required";
+        break;
+    case EBUSY:
+        error_msg = "device or resource busy";
+        break;
+    case EEXIST:
+        error_msg = "file exists";
+        break;
+    case EXDEV:
+        error_msg = "cross-device link";
+        break;
+    case ENODEV:
+        error_msg = "no such device";
+        break;
+    case ENOTDIR:
+        error_msg = "not a directory";
+        break;
+    case EISDIR:
+        error_msg = "is a directory";
+        break;
+    case EINVAL:
+        error_msg = "invalid argument";
+        break;
+    case ENFILE:
+        error_msg = "file table overflow";
+        break;
+    case EMFILE:
+        error_msg = "too many open files";
+        break;
+    case ENOTTY:
+        error_msg = "not a typewriter";
+        break;
+    case ETXTBSY:
+        error_msg = "text file busy";
+        break;
+    case EFBIG:
+        error_msg = "file too large";
+        break;
+    case ENOSPC:
+        error_msg = "no space left on device";
+        break;
+    case ESPIPE:
+        error_msg = "illegal seek";
+        break;
+    case EROFS:
+        error_msg = "read-only file system";
+        break;
+    case EMLINK:
+        error_msg = "too many links";
+        break;
+    case EPIPE:
+        error_msg = "broken pipe";
+        break;
+    case EDOM:
+        error_msg = "math argument out of domain of func";
+        break;
+    case ERANGE:
+        error_msg = "math result not representable";
+        break;
+    default:
+        error_msg = "unknown error";
+        break;
+    }
+    return error_msg;
+}
+
 Services &Services::Instance()
 {
     static Services instance;
     return instance;
 }
 
-std::stringstream Services::process(const std::string &command, std::stringstream &ss,int& code)
+std::stringstream Services::process(const std::string &command, std::stringstream &ss, int &code)
 {
     if (command_service_map.find(command) != command_service_map.end())
     {
-        code=0;
+        code = 0;
+        Kernel::Instance().GetUser().u_error = 0;
         return (Instance().*(command_service_map[command]))(ss);
     }
     else
@@ -498,8 +707,10 @@ std::stringstream Services::process(const std::string &command, std::stringstrea
                  << "\"" << command << "\""
                  << " not found" << std::endl;
 
-        cout<<"[SERVICES] command "<< "\"" << command << "\""<<"not found"<<endl;
-        code=-1;
+        cout << "[SERVICES] command "
+             << "\"" << command << "\""
+             << "not found" << endl;
+        code = -1;
         return send_str;
     }
 }

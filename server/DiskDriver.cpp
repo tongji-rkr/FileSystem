@@ -24,20 +24,21 @@ void DiskDriver::Initialize()
     int fd = open(devpath, O_RDWR);
     if (fd == -1)
     {
+        cout << "DiskDriver: diskfile not found, initializing..." << endl;
         fd = open(devpath, O_RDWR | O_CREAT, 0666);
         if (fd == -1)
         {
-            printf("[error] DiskDriver Init Error: 创建 %s 失败\n", devpath);
+            cout << "DiskDriver: unable to create diskfile" << endl;
             exit(-1);
         }
         // 对磁盘进行初始化
         this->init_img(fd);
-        // cout << "[INFO] 磁盘初始化完毕." <<endl;
+        cout << "DiskDriver: init successfully" <<endl;
     }
     // 2. mmap
     mmap_img(fd);
     this->img_fd = fd;
-    cout << "[info] 磁盘mmap映射完毕." << endl;
+    cout << "DiskDriver: mmap end" << endl;
 }
 
 // 文件系统退出
@@ -48,7 +49,7 @@ void DiskDriver::quit()
     int r = fstat(this->img_fd, &st);
     if (r == -1)
     {
-        printf("[error]获取img文件信息失败，文件系统异常退出.\n");
+        printf("DiskDriver: unable to access the image file \n");
         close(this->img_fd);
         exit(-1);
     }
@@ -137,8 +138,6 @@ void DiskDriver::init_img(int fd)
     write(fd, &spb, sizeof(SuperBlock));
     write(fd, di_table, FileSystem::INODE_ZONE_SIZE * FileSystem::INODE_NUMBER_PER_SECTOR * sizeof(DiskInode));
     write(fd, datablock, FileSystem::DATA_ZONE_SIZE * 512);
-
-    printf("[info] 格式化磁盘完毕...\n");
 }
 
 void DiskDriver::mmap_img(int fd)
@@ -148,7 +147,7 @@ void DiskDriver::mmap_img(int fd)
     int r = fstat(fd, &st);
     if (r == -1)
     {
-        printf("[error]获取img文件信息失败，文件系统启动中止\n");
+        cout<< "DiskDriver: unable to access the image file \n";
         close(fd);
         exit(-1);
     }

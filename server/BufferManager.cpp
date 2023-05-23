@@ -2,7 +2,10 @@
 #include "Kernel.h"
 #include<string.h>
 #include<iostream>
+#include<unistd.h>
+
 using namespace std;
+
 BufferManager::BufferManager()
 {
 	//nothing to do here
@@ -148,8 +151,10 @@ void BufferManager::Bwrite(Buf *bp)
 {
 	bp->b_flags &= ~(Buf::B_READ | Buf::B_DONE | Buf::B_ERROR | Buf::B_DELWRI);
 	bp->b_wcount = BufferManager::BUFFER_SIZE;		/* 512字节 */
-
+	cout<<"start bwrite"<<endl;
+	// sleep(10);
 	memcpy(&this->p[BufferManager::BUFFER_SIZE * bp->b_blkno], bp->b_addr, BufferManager::BUFFER_SIZE);
+	cout<<"end bwrite"<<endl;
 	this->Brelse(bp);
 
 	return;

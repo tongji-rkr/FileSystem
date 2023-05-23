@@ -67,7 +67,7 @@ void Kernel::Initialize()
 	pthread_mutex_unlock(& us.u_cdir->mutex);
     strcpy(us.u_curdir, "/");
 
-    printf("[info] 文件系统初始化完毕.\n");
+    cout << "Kernel: initialize end" << endl;
 }
 
 void Kernel::Quit()

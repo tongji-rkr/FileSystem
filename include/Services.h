@@ -48,6 +48,7 @@ private:
     std::stringstream cat_service(std::stringstream& ss);
     std::stringstream upload_service(std::stringstream& ss);
     std::stringstream download_service(std::stringstream& ss);
+    std::string get_error_msg(int error_code);
     
 public:
     static std::map<std::string,std::stringstream (Services::*)(std::stringstream&)> command_service_map;

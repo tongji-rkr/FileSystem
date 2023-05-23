@@ -71,7 +71,7 @@ stringstream print_head()
     send_str << "read [fd] [length] : to read the file with selected fd" << endl;
     send_str << "write [fd] [text] : to write text into the file with selected fd" << endl;
     send_str << "lseek [fd] [position] [ptrname] : to seek the file with selected fd" << endl;
-    send_str << "create [filename] [mode] : to create a file with selected mode" << endl;
+    send_str << "create [filename] : to create a file" << endl;
     send_str << "rm [filename] : to remove a file" << endl;
     send_str << "ls : to list all files in current directory" << endl;
     send_str << "mkdir [dirname] : to create a directory" << endl;
@@ -593,7 +593,7 @@ void *start_routine(void *ptr)
         if (api == "q" || api == "quit")
         {
             Kernel::Instance().GetUserManager().Logout();
-            send_str << "用户登出\n";
+            send_str << "user logout\n";
             sd.send_(send_str);
             break;
         }
@@ -621,11 +621,11 @@ void *start_routine(void *ptr)
         numbytes = sd.send_(send_str);
         if (numbytes <= 0)
         {
-            cout << "[info] 用户 " << username << " 断开连接." << endl;
+            cout << "[NETWORK] user " << username << " disconnect." << endl;
             Kernel::Instance().GetUserManager().Logout();
             return (void *)NULL;
         }
-        printf("[INFO] send %d bytes\n", numbytes);
+        printf("[NETWORK] send %d bytes\n", numbytes);
 
         // if(api != "" && api != " "){
         //     stringstream tishi;
