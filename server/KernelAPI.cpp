@@ -19,6 +19,7 @@ FD Kernel::Sys_Open(std::string& fpath,int mode)
 	return u.u_ar0[User::EAX];	
 
 }
+
 int Kernel::Sys_Close(FD fd)
 {
     User& u = Kernel::Instance().GetUser();
@@ -29,6 +30,7 @@ int Kernel::Sys_Close(FD fd)
 
     return u.u_ar0[User::EAX];
 }
+
 int Kernel::Sys_CreatDir(std::string &fpath)
 {
     int default_mode = 040755;
@@ -43,6 +45,7 @@ int Kernel::Sys_CreatDir(std::string &fpath)
     fimanag.MkNod();
     return u.u_ar0[User::EAX];
 }
+
 int Kernel::Sys_Creat(std::string &fpath,int mode)
 {
     //模仿系统调用，将参数放入user结构中
@@ -59,6 +62,7 @@ int Kernel::Sys_Creat(std::string &fpath,int mode)
     //从user结构取出返回值
 	return u.u_ar0[User::EAX];	
 }
+
 int Kernel::Sys_Delete(std::string &fpath)
 {
     //模仿系统调用，将参数放入user结构中
@@ -74,6 +78,7 @@ int Kernel::Sys_Delete(std::string &fpath)
     //从user结构取出返回值
 	return u.u_ar0[User::EAX];	
 }
+
 int Kernel::Sys_Read(FD fd, size_t size, size_t nmemb, void *ptr)
 {
     if(size>nmemb)return -1;
@@ -91,6 +96,7 @@ int Kernel::Sys_Read(FD fd, size_t size, size_t nmemb, void *ptr)
 	return u.u_ar0[User::EAX];	
 
 }
+
 int Kernel::Sys_Write(FD fd, size_t size, size_t nmemb, void *ptr)
 {
     if(size>nmemb)return -1;
@@ -107,6 +113,7 @@ int Kernel::Sys_Write(FD fd, size_t size, size_t nmemb, void *ptr)
     //从user结构取出返回值
 	return u.u_ar0[User::EAX];	
 }
+
 int Kernel::Sys_Seek(FD fd, long int offset, int whence)
 {
     //模仿系统调用，将参数放入user结构中

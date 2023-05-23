@@ -13,32 +13,43 @@ BufferManager::~BufferManager()
 	//nothing to do here
 }
 
+
+/**
+* @brief: init the Buffer Manager
+* @details: 
+* 	1. bound all the buffer block in this->Buffer to a BufferManager Block in this->m_Buf
+* 	2. add all the BufferManager Block in to the this->bFreeList
+* 	3. add B_BUSY status to all the BufferManager Block
+*/
 void BufferManager::Initialize()
 {
 	cout<<"Initalize..."<<endl;
 	int i;
 	Buf* bp;
 
+	// bFreeList is a double linked list
 	this->bFreeList.b_forw = this->bFreeList.b_back = &(this->bFreeList);
-	// this->bFreeList.av_forw = this->bFreeList.av_back = &(this->bFreeList);
 
 	for(i = 0; i < NBUF; i++)
 	{
-		// 控制的
 		bp = &(this->m_Buf[i]);
 		// bp->b_dev = -1;
-		// 存的
 		bp->b_addr = this->Buffer[i];
-		/* 初始化NODEV队列 */
+		// insert this BM Block into the FreeList
 		bp->b_back = &(this->bFreeList);
 		bp->b_forw = this->bFreeList.b_forw;
-		// 链表中插入
 		this->bFreeList.b_forw->b_back = bp;
 		this->bFreeList.b_forw = bp;
-		/* 初始化自由队列 */
+
+		// init the BufferManager Block using default setting(unlocked)
 		pthread_mutex_init(&bp->buf_lock, NULL);
+
+		/* We need to lock all the buffer before change its states*/
+
+		// set all the buffer in the free list as B_BUSY
 		pthread_mutex_lock(&bp->buf_lock);
 		bp->b_flags = Buf::B_BUSY;
+		// unlock the block without changing its state
 		Brelse(bp);
 
 	}
@@ -46,47 +57,57 @@ void BufferManager::Initialize()
 	return;
 }
 
-
+/**
+ * @brief: assign a Buffer Manager Block to the block with blkno
+ * @details:
+ * 	1. if the block with blkno is already in the freeList, wait it to unlock and return it!
+ * 	2. otherwise, wait the first Block Manager in the Free List to be unlock, assign it to blkno, return it
+*/
 Buf* BufferManager::GetBlk(int blkno){
 	
 	Buf*headbp=&this->bFreeList; //取得自有缓存队列的队首地址
 	Buf*bp; //返回的bp 
-	// 查看bFreeList中是否已经有该块的缓存, 有就返回
+	// traverse the bFreeList, if the wanted block is in the free list, return it directly
 	for (bp = headbp->b_forw; bp != headbp; bp = bp->b_forw)
 	{
 		//cout<<"block_no"<<bp->b_blkno<<endl;
 		if (bp->b_blkno != blkno)
 			continue;
 		bp->b_flags |= Buf::B_BUSY;
+		// lock this buf block before return it
 		pthread_mutex_lock(&bp->buf_lock);
 		//cout << "在缓存队列中找到对应的缓存，置为busy，GetBlk返回 blkno=" <<blkno<< endl;
 		return bp;
 	}
 
-	// 没有到队头找
-	//bp = headbp->b_forw;
+	// the wanted block is not in the freelist, try to assign an unlocked ManagerBlock to it
 	int success = false;
 	for (bp = headbp->b_forw; bp != headbp; bp = bp->b_forw)
 	{
-		// 检查该buf是否上锁
+		// if a unlocked block is found
 		if(pthread_mutex_trylock(&bp->buf_lock)==0){
 			success = true;
 			break;
 		}
-		printf("[DEBUG] buf已被锁，blkno=%d b_addr=%p\n", bp->b_blkno, bp->b_addr);
+		printf("[DEBUG] The buf is locked, blkno=%d b_addr=%p\n", bp->b_blkno, bp->b_addr);
 	}
+
+	// all the block in the free list is already locked
 	if(success == false){
 		bp = headbp->b_forw;
-		printf("[INFO]系统缓存已用完，等待队首缓存解锁...\n");
-		pthread_mutex_lock(&bp->buf_lock); // 等待第一个缓存块解锁。
-		printf("[INFO]系统成功得到队首缓存块...\n");
+		printf("[INFO]System Buffer ran out, wait the first block unlock...\n");
+		// wait for the first buffer block in the free buffer list to unlock
+		pthread_mutex_lock(&bp->buf_lock); 
+		printf("[INFO]Succesfully get a Buffer Block..\n");
 	}
+	// if the content in this blokc is not synced with the disk(B_DELWRI), write it back!
 	if (bp->b_flags&Buf::B_DELWRI)
 	{
-		this->Bwrite(bp);                  // 写回磁盘，并解锁
-		pthread_mutex_lock(&bp->buf_lock); // 马上上锁
+		this->Bwrite(bp);
+		// lock it immediately after write it back!
+		pthread_mutex_lock(&bp->buf_lock);
 	}
-	//注：这里清空了其他所有的标志，只置为busy
+	// clean all the states of the selected block except the B_BUSY
 	bp->b_flags = Buf::B_BUSY;
 	//注：我这里的操作是将头节点变成尾节点
 	// bp->b_back->b_forw = bp->b_forw;
@@ -97,12 +118,13 @@ Buf* BufferManager::GetBlk(int blkno){
 	// bp->b_forw = &this->bFreeList;
 	// this->bFreeList.b_back = bp;
 
+	// assign this Block Manager to this block
 	bp->b_blkno = blkno;
-//	cout << "成功分配到可用的缓存，getBlk将成功返回" << endl;
 	return bp;
 }
-// 这是干啥的
-// 可能是释放的
+/**
+ * @brief: unlock a buffer block without changing its B_WANTED B_BUSY B_WANTED state
+*/
 void BufferManager::Brelse(Buf* bp)
 {
 	/* 注意以下操作并没有清除B_DELWRI、B_WRITE、B_READ、B_DONE标志
