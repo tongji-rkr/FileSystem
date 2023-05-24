@@ -736,7 +736,7 @@ void FileManager::UnLink()
 	pDeleteInode = this->NameI(FileManager::NextChar, FileManager::DELETE);
 	if ( NULL == pDeleteInode )
 	{
-		printf("[error]文件不存在");
+		printf("[error] file does not exist");
 		//u.u_ar0[User::EAX]=-1;
 		return;
 	}
@@ -752,7 +752,8 @@ void FileManager::UnLink()
 	{
 		this->m_InodeTable->IPut(pDeleteInode);
 		this->m_InodeTable->IPut(pInode);
-		printf("[error]非超级用户不允许删除目录");
+
+		printf("[error] non-super user can not delete directory");
 		//u.u_ar0[User::EAX]=-1;
 		return;
 	}
@@ -826,20 +827,20 @@ void FileManager::ChDir()
 	pInode = this->NameI(FileManager::NextChar,FileManager::OPEN);
 	if (NULL == pInode)
 	{
-		cout << "没有该路径" << endl;
+		cout << "Path dose not exist" << endl;
 		return;
 	}
 	/* 搜索到的文件不是目录文件 */
 	if ((pInode->i_mode & Inode::IFMT) !=Inode::IFDIR)
 	{
-		cout << "搜索到的不是目录文件,chdir错误返回" << endl;
+		cout << "Not a directory" << endl;
 		u.u_error = ENOTDIR;
 		this->m_InodeTable->IPut(pInode);
 		return;
 	}
 	if (this->Access(pInode,Inode::IEXEC))
 	{
-		cout << "无权限返回" << endl;
+		cout << "Permission denied" << endl;
 		this->m_InodeTable->IPut(pInode);
 		return;
 	}

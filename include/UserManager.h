@@ -14,20 +14,20 @@ using namespace std;
 class UserManager
 {
 public:
-    static const int USER_N = 100; // 最多支持100个用户同时在线
+    static const int USER_N = 100;
     UserManager();
     ~UserManager();
-    // 用户登录
+    // User Login
     bool Login(string uname);
-    // 用户登出
+    // User Logout
     bool Logout();
-    // 得到当前线程的User结构
+    // Get User Structure of the current thread
     User* GetUser();
 
 public:
     // 一个动态的索引表
     std::map<pthread_t, int> user_addr;
-    // 一个User数组
+    // User array
     User* pusers[USER_N]; 
 };
 

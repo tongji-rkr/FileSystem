@@ -122,7 +122,7 @@ void *start_routine(void *ptr)
         return (void *)NULL;
     }
 
-    printf("进入用户线程，fd=%d\n", fd);
+    printf("enter a user thread fd=%d\n", fd);
 
     memset(buf, 0, sizeof(buf));
     if ((numbytes = recv(fd, buf, 1024, 0)) == -1)
@@ -132,7 +132,7 @@ void *start_routine(void *ptr)
     }
 
     string username = buf;
-    cout << "[info] 用户输入用户名：" << username << endl;
+    cout << "[info] User name inputed" << username << endl;
 
     sendU sd(fd, username);
 
@@ -593,7 +593,7 @@ void *start_routine(void *ptr)
         if (api == "q" || api == "quit")
         {
             Kernel::Instance().GetUserManager().Logout();
-            send_str << "用户登出\n";
+            send_str << "User Logout\n";
             sd.send_(send_str);
             break;
         }
@@ -621,7 +621,7 @@ void *start_routine(void *ptr)
         numbytes = sd.send_(send_str);
         if (numbytes <= 0)
         {
-            cout << "[info] 用户 " << username << " 断开连接." << endl;
+            cout << "[info] User " << username << " connect broken." << endl;
             Kernel::Instance().GetUserManager().Logout();
             return (void *)NULL;
         }

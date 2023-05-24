@@ -345,7 +345,7 @@ stringstream Services::cat_service(stringstream &ss)
     FD fd = Kernel::Instance().Sys_Open(fpath, 0x1);
     if (fd < 0)
     {
-        send_str << "[cat] 打开文件出错." << endl;
+        send_str << "[cat] Error when open a file." << endl;
         return send_str;
     }
     // Read
