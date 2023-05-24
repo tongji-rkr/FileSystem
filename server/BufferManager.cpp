@@ -109,19 +109,10 @@ Buf* BufferManager::GetBlk(int blkno){
 	}
 	// clean all the states of the selected block except the B_BUSY
 	bp->b_flags = Buf::B_BUSY;
-	//注：我这里的操作是将头节点变成尾节点
-	// bp->b_back->b_forw = bp->b_forw;
-	// bp->b_forw->b_back = bp->b_back;
-
-	// bp->b_back = this->bFreeList.b_back->b_forw;
-	// this->bFreeList.b_back->b_forw = bp;
-	// bp->b_forw = &this->bFreeList;
-	// this->bFreeList.b_back = bp;
-
-	// assign this Block Manager to this block
 	bp->b_blkno = blkno;
 	return bp;
 }
+
 /**
  * @brief: unlock a buffer block without changing its B_WANTED B_BUSY B_WANTED state
 */
@@ -137,13 +128,19 @@ void BufferManager::Brelse(Buf* bp)
 	return;
 }
 
-
+/**
+ * @brief read the buffer block
+ * 
+ * @param blkno 
+ * @return Buf* 
+ */
 Buf* BufferManager::Bread(int blkno)
 {
 	Buf* bp;
-	/* 字符块号申请缓存 */
+	// alloc a buffer manager block for the block with blkno
+	// blkno is the block number in the disk
 	bp = this->GetBlk(blkno);
-	/* 如果在设备队列中找到所需缓存，即B_DONE已设置，就不需进行I/O操作 */
+	// if this block is already in the buffer, and the content is synced with the disk, return it directly
 	if(bp->b_flags & Buf::B_DONE)
 	{
 		return bp;
@@ -153,14 +150,7 @@ Buf* BufferManager::Bread(int blkno)
 	bp->b_wcount = BufferManager::BUFFER_SIZE;
 	// 拷贝到内存
 	memcpy(bp->b_addr,&this->p[BufferManager::BUFFER_SIZE*bp->b_blkno],BufferManager::BUFFER_SIZE);
-	/* 
-	 * 将I/O请求块送入相应设备I/O请求队列，如无其它I/O请求，则将立即执行本次I/O请求；
-	 * 否则等待当前I/O请求执行完毕后，由中断处理程序启动执行此请求。
-	 * 注：Strategy()函数将I/O请求块送入设备请求队列后，不等I/O操作执行完毕，就直接返回。
-	 */
-	// this->m_DeviceManager->GetBlockDevice(Utility::GetMajor(dev)).Strategy(bp);
-	/* 同步读，等待I/O操作结束 */
-	// this->IOWait(bp);
+
 	return bp;
 }
 

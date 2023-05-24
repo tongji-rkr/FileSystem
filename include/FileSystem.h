@@ -11,6 +11,11 @@
  */
 class SuperBlock
 {
+	/* static consts */
+public: 
+	static const int MAX_INODE_NUMBER = 100;		/* 最多允许创建的文件数量 */
+	static const int MAX_FREE_BLOCK_NUMBER = 100;	/* 最多允许管理的空闲盘块数量 */
+	static const int GROUP_BLOCK_NUMBER = 100;		/* 每组管理的盘块数量 */
 	/* Functions */
 public:
 	/* Constructors */
@@ -23,11 +28,11 @@ public:
 	int		s_isize;		/* 外存Inode区占用的盘块数 */
 	int		s_fsize;		/* 盘块总数 */
 	
-	int		s_nfree;		/* 直接管理的空闲盘块数量 */
-	int		s_free[100];	/* 直接管理的空闲盘块索引表 */
+	int		s_nfree;					/* 直接管理的空闲盘块数量 */
+	int		s_free[MAX_FREE_BLOCK_NUMBER];		/* 直接管理的空闲盘块索引表 */
 	
-	int		s_ninode;		/* 直接管理的空闲外存Inode数量 */
-	int		s_inode[100];	/* 直接管理的空闲外存Inode索引表 */
+	int		s_ninode;					/* 直接管理的空闲外存Inode数量 */
+	int		s_inode[MAX_INODE_NUMBER];	/* 直接管理的空闲外存Inode索引表 */
 	
 	pthread_mutex_t		s_flock;		/* 封锁空闲盘块索引表标志 */
 	pthread_mutex_t		s_ilock;		/* 封锁空闲Inode表标志 */
@@ -51,13 +56,14 @@ public:
 	/* static consts */
 	//static const int NMOUNT = 5;			/* 系统中用于挂载子文件系统的装配块数量 */
 
+	// save the System Global SuperBlock in the first and second sector on the disk
 	static const int SUPER_BLOCK_SECTOR_NUMBER = 0;	/* 定义SuperBlock位于磁盘上的扇区号，占据200，201两个扇区。 */
 
 	static const int ROOTINO = 0;			/* 文件系统根目录外存Inode编号 */
 
 	static const int INODE_NUMBER_PER_SECTOR = 8;		/* 外存INode对象长度为64字节，每个磁盘块可以存放512/64 = 8个外存Inode */
 	static const int INODE_ZONE_START_SECTOR = 2;		/* 外存Inode区位于磁盘上的起始扇区号 */
-	static const int INODE_ZONE_SIZE = 27 - 2;		/* 磁盘上外存Inode区占据的扇区数 */
+	static const int INODE_ZONE_SIZE = 27 - 2;			/* 磁盘上外存Inode区占据的扇区数 */
 
 	static const int DATA_ZONE_START_SECTOR = 27;		/* 数据区的起始扇区号 */
 	static const int DATA_ZONE_END_SECTOR = 1000 - 1;	/* 数据区的结束扇区号 */

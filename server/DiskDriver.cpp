@@ -27,7 +27,7 @@ void DiskDriver::Initialize()
         fd = open(devpath, O_RDWR | O_CREAT, 0666);
         if (fd == -1)
         {
-            printf("[error] DiskDriver Init Error: 创建 %s 失败\n", devpath);
+            printf("[error] DiskDriver Init Error: failed to create %s\n", devpath);
             exit(-1);
         }
         // 对磁盘进行初始化
@@ -37,7 +37,8 @@ void DiskDriver::Initialize()
     // 2. mmap
     mmap_img(fd);
     this->img_fd = fd;
-    cout << "[info] 磁盘mmap映射完毕." << endl;
+    // english
+    cout << "[info] DiskDriver Initialize Done." << endl;
 }
 
 // 文件系统退出
@@ -48,7 +49,7 @@ void DiskDriver::quit()
     int r = fstat(this->img_fd, &st);
     if (r == -1)
     {
-        printf("[error]获取img文件信息失败，文件系统异常退出.\n");
+        printf("[error]fail to get img file info, file system exit\n");
         close(this->img_fd);
         exit(-1);
     }
@@ -61,13 +62,13 @@ void DiskDriver::init_spb(SuperBlock& sb)
 {
     sb.s_isize = FileSystem::INODE_ZONE_SIZE;
     sb.s_fsize = FileSystem::DATA_ZONE_END_SECTOR + 1;
-    sb.s_nfree = (FileSystem::DATA_ZONE_SIZE - 99) % 100;
+    sb.s_nfree = (FileSystem::DATA_ZONE_SIZE - SuperBlock::MAX_INODE_NUMBER + 1) % SuperBlock::GROUP_BLOCK_NUMBER;
 
     // 找到最后一个盘块组的第一个盘块
     int start_last_datablk = FileSystem::DATA_ZONE_START_SECTOR;
     while(true){
-        if((start_last_datablk + 100 -1) < FileSystem::DATA_ZONE_END_SECTOR)
-            start_last_datablk += 100;
+        if((start_last_datablk + SuperBlock::GROUP_BLOCK_NUMBER -1) < FileSystem::DATA_ZONE_END_SECTOR)
+            start_last_datablk += SuperBlock::GROUP_BLOCK_NUMBER;
         else
             break;
     }
@@ -76,7 +77,7 @@ void DiskDriver::init_spb(SuperBlock& sb)
     for(int i = 0; i < sb.s_nfree; ++i)
         sb.s_free[i] = start_last_datablk + i;
 
-    sb.s_ninode = 100;
+    sb.s_ninode = SuperBlock::MAX_INODE_NUMBER;
     for(int i = 0; i < sb.s_ninode; ++i)
         sb.s_inode[i] = i;
     
@@ -86,20 +87,24 @@ void DiskDriver::init_spb(SuperBlock& sb)
     sb.s_ronly = 0;
 }
 
+/**
+ * @brief init a data block
+ * @param data 
+ */
 void DiskDriver::init_db(char* data)
 {
     struct
     {
         int nfree;     //本组空闲的个数
-        int free[100]; //本组空闲的索引表
+        int free[SuperBlock::GROUP_BLOCK_NUMBER]; //本组空闲的索引表
     } tmp_table;
 
     int last_datablk_num = FileSystem::DATA_ZONE_SIZE; //未加入索引的盘块的数量
     // 初始化组长盘块
     for(int i = 0; ; i++)
     {
-        if (last_datablk_num >= 100)
-            tmp_table.nfree = 100;
+        if (last_datablk_num >= SuperBlock::GROUP_BLOCK_NUMBER)
+            tmp_table.nfree = SuperBlock::GROUP_BLOCK_NUMBER;
         else
             tmp_table.nfree = last_datablk_num;
         last_datablk_num -= tmp_table.nfree;
@@ -113,7 +118,7 @@ void DiskDriver::init_db(char* data)
                 tmp_table.free[j] = 100 * i + j + FileSystem::DATA_ZONE_START_SECTOR - 1;
             }
         }
-        memcpy(&data[99 * 512 + i * 100 * 512], (void *)&tmp_table, sizeof(tmp_table));
+        memcpy(&data[99 * BufferManager::BUFFER_SIZE + i *  SuperBlock::GROUP_BLOCK_NUMBER * 512], (void *)&tmp_table, sizeof(tmp_table));
         if (last_datablk_num == 0)
             break;
     }
@@ -138,7 +143,8 @@ void DiskDriver::init_img(int fd)
     write(fd, di_table, FileSystem::INODE_ZONE_SIZE * FileSystem::INODE_NUMBER_PER_SECTOR * sizeof(DiskInode));
     write(fd, datablock, FileSystem::DATA_ZONE_SIZE * 512);
 
-    printf("[info] 格式化磁盘完毕...\n");
+    // english
+    printf("[info] Format Disk Done...\n");
 }
 
 void DiskDriver::mmap_img(int fd)
@@ -148,7 +154,7 @@ void DiskDriver::mmap_img(int fd)
     int r = fstat(fd, &st);
     if (r == -1)
     {
-        printf("[error]获取img文件信息失败，文件系统启动中止\n");
+        printf("[error] fail to get img file info, file system exit\n");
         close(fd);
         exit(-1);
     }
