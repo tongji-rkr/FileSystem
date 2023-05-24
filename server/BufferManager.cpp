@@ -112,6 +112,7 @@ void BufferManager::Brelse(Buf* bp)
 	 * B_DELWRI表示虽然将该控制块释放到自由队列里面，但是有可能还没有些到磁盘上。
 	 * B_DONE则是指该缓存的内容正确地反映了存储在或应存储在磁盘上的信息 
 	 */
+	// sleep(2);
 	bp->b_flags &= ~(Buf::B_WANTED | Buf::B_BUSY | Buf::B_ASYNC);
 	pthread_mutex_unlock(&bp->buf_lock);
 	//printf("[DEBUG] 释放缓存块 b")

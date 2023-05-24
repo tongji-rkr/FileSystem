@@ -1,6 +1,7 @@
 #include "INode.h"
 #include "Kernel.h"
 #include "User.h"
+#include <unistd.h>
 #include<algorithm>
 #include<string.h>	//memcpy
 
@@ -47,6 +48,7 @@ Inode::~Inode()
 
 void Inode::ReadI()
 {
+	// cout<<"Inode ReadI"<<endl;
 	int lbn;	/* 文件逻辑块号 */
 	int bn;		/* lbn对应的物理盘块号 */
 	int offset;	/* 当前字符块内起始传送位置 */
@@ -97,6 +99,8 @@ void Inode::ReadI()
 		u.u_IOParam.m_Base += nbytes;
 		u.u_IOParam.m_Offset += nbytes;
 		u.u_IOParam.m_Count -= nbytes;
+		// cout<<"sleep at thread"<<pthread_self()<<endl;
+		// sleep(2);
 		bufMgr.Brelse(pBuf);	/* 使用完缓存，释放该资源 */
 	}
 }
