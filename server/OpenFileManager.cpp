@@ -103,7 +103,8 @@ Inode *InodeTable::IGet(int inumber)
 			pInode = &(this->m_Inode[index]);
 			/* 如果该内存Inode被上锁 */
 			// printf("[IGET]上锁pInode: index=%d i_number=%d\n",index, pInode->i_number);
-			pthread_mutex_lock(&pInode->mutex);
+			// pthread_mutex_lock(&pInode->mutex);
+			&pInode->NFlock();
 			// if( pInode->i_flag & Inode::ILOCK )
 			//{
 			/* 增设IWANT标志，然后睡眠 */

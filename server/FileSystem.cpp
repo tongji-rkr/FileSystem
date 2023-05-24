@@ -303,9 +303,7 @@ void FileSystem::IFree(int number)
 		return;
 	}
 
-	// we do not need to lock the Inode table here, we even should not lock it
-	// because we need to lock the Inode table when we alloc a new Inode
-	// if we lock the Inode table here, we will get a deadlock
+	// we are in the critical section now
 	pthread_mutex_lock(&sb->s_ilock);
 	sb->s_inode[sb->s_ninode++] = number;
 	pthread_mutex_unlock(&sb->s_ilock);
