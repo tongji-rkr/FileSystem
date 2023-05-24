@@ -28,7 +28,7 @@ public:
 	int		s_isize;		/* 外存Inode区占用的盘块数 */
 	int		s_fsize;		/* 盘块总数 */
 	
-	int		s_nfree;					/* 直接管理的空闲盘块数量 */
+	int		s_nfree;							/* 直接管理的空闲盘块数量 */
 	int		s_free[MAX_FREE_BLOCK_NUMBER];		/* 直接管理的空闲盘块索引表 */
 	
 	int		s_ninode;					/* 直接管理的空闲外存Inode数量 */

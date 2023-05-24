@@ -129,11 +129,12 @@ void FileSystem::Update()
 		/* 将缓冲区中的数据写到磁盘上 */
 		this->m_BufferManager->Bwrite(pBuf);
 	}
-	// unlock the SuperBlock
+	// unlock the SuperBlock, we are out of the critical section now
 	pthread_mutex_unlock(&sb->s_ilock);
 	pthread_mutex_unlock(&sb->s_flock);
 	cout << "[Update] sb->s_flock unlocked!" <<endl;
 	/* 同步修改过的内存Inode到对应外存Inode */
+	// write the Inode to the disk
 	g_InodeTable.UpdateInodeTable();
 
 	/* 清除Update()函数锁 */
@@ -223,8 +224,7 @@ Inode* FileSystem::IAlloc()
 				break;
 			}
 		}
-		/* 解除对空闲外存Inode索引表的锁，唤醒因为等待锁而睡眠的进程 */
-		pthread_mutex_unlock(&sb->s_ilock);
+		
 		// sb->s_ilock = 0;
 		// Kernel::Instance().GetProcessManager().WakeUpAll((unsigned long)&sb->s_ilock);
 		
@@ -263,12 +263,15 @@ Inode* FileSystem::IAlloc()
 			sb->s_fmod = 1;
 			return pNode;
 		}
+		// other thread might be using this Inode, we need to put it back
 		else	/* 如果该Inode已被占用 */
 		{
 			g_InodeTable.IPut(pNode);
 			continue;	/* while循环 */
 		}
 	}
+	/* 解除对空闲外存Inode索引表的锁，唤醒因为等待锁而睡眠的进程 */
+	pthread_mutex_unlock(&sb->s_ilock);
 	return NULL;	/* GCC likes it! */
 }
 
@@ -300,8 +303,12 @@ void FileSystem::IFree(int number)
 		return;
 	}
 
+	// we do not need to lock the Inode table here, we even should not lock it
+	// because we need to lock the Inode table when we alloc a new Inode
+	// if we lock the Inode table here, we will get a deadlock
+	pthread_mutex_lock(&sb->s_ilock);
 	sb->s_inode[sb->s_ninode++] = number;
-
+	pthread_mutex_unlock(&sb->s_ilock);
 	/* 设置SuperBlock被修改标志 */
 	sb->s_fmod = 1;
 }
