@@ -13,10 +13,12 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include "cJSON.h"
 #include "RemoteClient.h"
 #include "base64.h"
+#define MAX_FILE_SIZE 1024
 
 
 using namespace std;
@@ -211,30 +213,38 @@ string get_command()
   return command;
 }
 
-string get_file_string(std::string path){
+string split_files(){
+
+
+}
+
+int get_file_length(std::string path, int& fd){
     //打开文件
-    int fd = open(path.c_str(), O_RDWR);
+    fd = open(path.c_str(), O_RDWR);
     if (fd == -1) {
         perror("open");
-        exit(1);
+        return -1;
     }
     //获取文件大小
     int fileSize = lseek(fd, 0, SEEK_END);
     if (fileSize == -1) {
         perror("lseek");
-        exit(1);
+        return -1;
     }
-    
+    return fileSize;
+}
+
+string get_file_string(int fd, int fileSize, int offset){
     //读取文件内容
     char *buf = new char[fileSize];
-    lseek(fd, 0, SEEK_SET);
+    lseek(fd, offset, SEEK_SET);
     int ret = read(fd, buf, fileSize);
     string raw_str=string(buf, fileSize);
     string str_base64 = base64_encode(reinterpret_cast<const unsigned char*>(raw_str.c_str()), raw_str.length());
     return str_base64;
 }
 
-bool process_upload(const string & upload_command, string & content){
+bool process_upload(const string & upload_command, vector<string>& content){
     // parse the command and check whether the parameter is correct and the file exists
     // format: upload <filename_local> <filename_server>
     stringstream ss(upload_command);
@@ -256,7 +266,22 @@ bool process_upload(const string & upload_command, string & content){
     // while((ch=fgetc(fp))!=EOF){
     //     content+=ch;
     // }
-    content = get_file_string(filename_local);
+    int fd = 0;
+    int fileSize= get_file_length(filename_local, fd);
+    if(fileSize==-1){
+        cout<<"file not exists"<<endl;
+        return false;
+    } 
+    //分包
+    int offset = 0;
+    while(fileSize > 0)
+    {
+        int packetSize = fileSize > MAX_FILE_SIZE ? MAX_FILE_SIZE : fileSize;   
+        string str_base64 = get_file_string(fd, packetSize, offset);
+        content.push_back(str_base64);
+        fileSize -= MAX_FILE_SIZE;
+        offset += MAX_FILE_SIZE;
+    }
 
     return true;
 
@@ -318,9 +343,6 @@ void receive_message_handler(const string& message)
     string display_message_str = display_message->valuestring;
     cout<<display_message_str;
     
-    
-
-    
 
     string send_message;
     // getline(cin, send_message);
@@ -338,31 +360,57 @@ void receive_message_handler(const string& message)
     cJSON_AddStringToObject(root, "command", send_message.c_str());
     
     
+    stringstream ss(send_message);
+    string cmd, p1_ofpath, p2_ifpath;
+    ss >> cmd >> p1_ofpath >> p2_ifpath;
 
     // checke whether the command is "upload"
     // open the file and read content to string
 
-    string content;
+    vector<string> content;
     
     if(send_message.substr(0,6)=="upload"){
-        bool result = process_upload(send_message,content);
+        bool result = process_upload(send_message, content);
         cout<<endl<<"doing upload"<<endl;
         if(!result){
             // to send a message to server to get a response again
+            // cJSON *root_new = cJSON_CreateObject();
+            // cJSON_AddStringToObject(root_new, "command", "upload failed");
+            // char *final_message = cJSON_Print(root_new);
+            // string final_message_str(final_message);
+            // // send the message to server
+            // client.send_message(final_message_str);
             cJSON *root_new = cJSON_CreateObject();
-            cJSON_AddStringToObject(root_new, "command", "upload failed");
+            printf("upload failed\n");
+            cJSON_AddStringToObject(root_new, "command", " ");
             char *final_message = cJSON_Print(root_new);
             string final_message_str(final_message);
             // send the message to server
             client.send_message(final_message_str);
             return;
         }
-        cJSON_AddStringToObject(root, "content", content.c_str());
+        cJSON_AddStringToObject(root, "fileNum", to_string(content.size()).c_str());
         char *final_message = cJSON_Print(root);
         string final_message_str(final_message);
         // send the message to server
         client.send_message(final_message_str);
         cout <<"send json ---"<<endl << final_message_str << endl;  
+        for(int i=0;i<content.size();i++){
+            string str_base64 = content[i];
+            string name = p2_ifpath.substr(0, p2_ifpath.find_last_of(".")) + "_" + to_string(i) + p2_ifpath.substr(p2_ifpath.find_last_of("."));
+            cJSON *root_new = cJSON_CreateObject();
+            cJSON_AddStringToObject(root_new, "command", "upload");
+            cJSON_AddStringToObject(root_new, "filename", name.c_str());
+            cJSON_AddStringToObject(root_new, "totalNum", to_string(content.size()).c_str());
+            cJSON_AddStringToObject(root_new, "remainNum", to_string(content.size()-i-1).c_str());
+            cJSON_AddStringToObject(root_new, "content", str_base64.c_str());
+            char *final_message = cJSON_Print(root_new);
+            string final_message_str(final_message);
+            // send the message to server
+            client.send_message(final_message_str);
+            cout <<"send json ---"<<endl << final_message_str << endl;
+            sleep(1);
+        }
         return;
     }
     

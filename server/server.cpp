@@ -224,7 +224,7 @@ void *start_routine(void *ptr)
             break;
         }
 
-        int code;
+        int code = 0;
         send_str = Services::process(api, ss, code,root);
         //check whether the root has "content"
         

@@ -441,149 +441,81 @@ stringstream Services::cat_service(stringstream &ss,cJSON* root)
     return send_str;
 }
 
-stringstream Services::upload_service(stringstream &ss,cJSON* root)
+stringstream Services::upload_service(stringstream &ss, cJSON* root)
 {
     stringstream send_str;
-    string p1_ofpath;
-    string p2_ifpath;
-    ss >> p1_ofpath >> p2_ifpath;
-    if (p1_ofpath == "" || p2_ifpath == "")
-    {
-        send_str << "upload [localpath] [remotepath]\n";
-        send_str << "invalid arguments" << endl;
-        return send_str;
-    }
-    // // 打开外部文件
-    // int ofd = open(p1_ofpath.c_str(), O_RDONLY); // 只读方式打开外部文件
-    // if (ofd < 0)
-    // {
-    //     send_str << "[ERROR] failed to open file:" << p1_ofpath << endl;
-    //     return send_str;
-    // }
-    // // 创建内部文件
-    // Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
-    // // error
-    // if (Kernel::Instance().GetUser().u_error != 0)
-    // {
-    //     send_str << "error occur when create file" << endl;
-    //     send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
-    //     return send_str;
-    // }
-    // int ifd = Kernel::Instance().Sys_Open(p2_ifpath, 0x1 | 0x2);
-    // // error
-    // if (Kernel::Instance().GetUser().u_error != 0)
-    // {
-    //     send_str << "error occur when open file" << endl;
-    //     send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
-    //     return send_str;
-    // }
-    // if (ifd < 0)
-    // {
-    //     close(ofd);
-    //     send_str << "[ERROR] failed to open file:" << p2_ifpath << endl;
-    //     return send_str;
-    // }
-    // // 开始拷贝，一次 256 字节
-    // char buf[256];
-    // int all_read_num = 0;
-    // int all_write_num = 0;
-    // while (true)
-    // {
-    //     memset(buf, 0, sizeof(buf));
-    //     int read_num = read(ofd, buf, 256);
-    //     if (read_num <= 0)
-    //     {
-    //         break;
-    //     }
-    //     all_read_num += read_num;
-    //     int write_num =
-    //         Kernel::Instance().Sys_Write(ifd, read_num, 256, buf);
-    //     if (write_num <= 0)
-    //     {
-    //         send_str << "[ERROR] failed to write:" << p2_ifpath;
-    //         break;
-    //     }
-    //     all_write_num += write_num;
-    // }
-    // send_str << "Bytes read:" << all_read_num
-    //          << "Bytes written:" << all_write_num << endl;
-    // close(ofd);
-
-    // the file content
-    string file_content=cJSON_GetObjectItem(root,"content")->valuestring;
-    string file_content_raw=base64_decode(file_content);
-    // cout<<"file_content_raw:"<<file_content_raw<<endl;
-    // 创建内部文件
-    Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
-    // error
-    if (Kernel::Instance().GetUser().u_error != 0)
-    {
-        send_str << "error occur when create file" << endl;
-        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
-        return send_str;
-    }
-    int ifd = Kernel::Instance().Sys_Open(p2_ifpath, 0x1 | 0x2);
-    // error
-    if (Kernel::Instance().GetUser().u_error != 0)
-    {
-        send_str << "error occur when open file" << endl;
-        send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
-        return send_str;
-    }
-    if (ifd < 0)
-    {
-        // close(ofd);
-        send_str << "[ERROR] failed to open file:" << p2_ifpath << endl;
-        return send_str;
-    }
-    // 开始拷贝，一次 256 字节
-    const int buf_size=256;
-    char buf[buf_size];
-    int all_read_num = file_content_raw.length();
-    int all_write_num = 0;
-    while (true)
-    {
-        // memset(buf, 0, sizeof(buf));
-        // // int read_num = read(ofd, buf, buf_size);
-        // if (read_num <= 0)
-        // {
-        //     break;
-        // }
-        // all_read_num += read_num;
-        // int write_num =
-        //     Kernel::Instance().Sys_Write(ifd, read_num, buf_size, buf);
-        // if (write_num <= 0)
-        // {
-        //     send_str << "[ERROR] failed to write:" << p2_ifpath;
-        //     break;
-        // }
-        // all_write_num += write_num;
-
-        // write the file content
-        // int write_num =
-        //     Kernel::Instance().Sys_Write(ifd, file_content_raw.length(), buf_size, (void*)file_content_raw.c_str());
-        // all_write_num += write_num;
-        int current_upload_num=min(buf_size,(int)file_content_raw.length()-all_write_num);
-        int write_num =
-            Kernel::Instance().Sys_Write(ifd, current_upload_num, buf_size, (void*)(file_content_raw.c_str()+all_write_num));
-        all_write_num += write_num;
-        if(write_num<=0)
+    if(!cJSON_HasObjectItem(root,"fileNum")){
+        string p2_ifpath = cJSON_GetObjectItem(root,"filename")->valuestring;
+        string file_content_raw = cJSON_GetObjectItem(root,"content")->valuestring;
+        int remainNum = cJSON_GetObjectItem(root,"remainNum")->valueint;
+        int totalNum = cJSON_GetObjectItem(root,"totalNum")->valueint;
+        Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
+        int ifd = Kernel::Instance().Sys_Open(p2_ifpath, 0x1 | 0x2);
+        // error
+        if (Kernel::Instance().GetUser().u_error != 0)
         {
-            send_str << "[ERROR] failed to write:" << p2_ifpath<<endl;
-            break;
+            send_str << "error occur when open file" << endl;
+            send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+            return send_str;
         }
-        if(all_write_num>=file_content_raw.length())
+        if (ifd < 0)
         {
-            break;
+            // close(ofd);
+            send_str << "[ERROR] failed to open file:" << p2_ifpath << endl;
+            return send_str;
         }
+        // 开始拷贝，一次 256 字节
+        const int buf_size=256;
+        char buf[buf_size];
+        int all_read_num = file_content_raw.length();
+        int all_write_num = (totalNum - remainNum - 1) * buf_size;
+        while (true)
+        {
+            int current_upload_num=min(buf_size,(int)file_content_raw.length()-all_write_num);
+            int write_num =
+                Kernel::Instance().Sys_Write(ifd, current_upload_num, buf_size, (void*)(file_content_raw.c_str()+all_write_num));
+            all_write_num += write_num;
+            if(write_num<=0)
+            {
+                send_str << "[ERROR] failed to write:" << p2_ifpath<<endl;
+                break;
+            }
+            if(all_write_num >= file_content_raw.length())
+            {
+                break;
+            }
+        }
+        send_str << "Bytes read:" << all_read_num
+                << "Bytes written:" << all_write_num 
+                << "Remain Packets:" << remainNum
+                << "Total Packets:" << totalNum << endl;
+        Kernel::Instance().Sys_Close(ifd);
     }
-    send_str << "Bytes read:" << all_read_num
-             << "Bytes written:" << all_write_num << endl;
-    // close(ofd);
+    else{
+        string p1_ofpath;
+        string p2_ifpath;
+        ss >> p1_ofpath >> p2_ifpath;
+        printf("p1_ofpath:%s\n",p1_ofpath.c_str());
+        printf("p2_ifpath:%s\n",p2_ifpath.c_str());
+        if (p1_ofpath == "" || p2_ifpath == "")
+        {
+            send_str << "upload [localpath] [remotepath]\n";
+            send_str << "invalid arguments" << endl;
+            return send_str;
+        }
+        int fileNum = cJSON_GetObjectItem(root,"fileNum")->valueint;
+        cout<<"receive fileNum:"<<fileNum<<endl;
 
-
-    Kernel::Instance().Sys_Close(ifd);
-    return send_str;
+        Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
+        // error
+        if (Kernel::Instance().GetUser().u_error != 0)
+        {
+            send_str << "error occur when create file" << endl;
+            send_str << get_error_msg(Kernel::Instance().GetUser().u_error) << endl;
+            return send_str;
+        } 
+        return send_str;
+    }
 }
 
 stringstream Services::download_service(stringstream &ss,cJSON* root)
@@ -803,6 +735,7 @@ std::stringstream Services::process(const std::string &command, std::stringstrea
 {
     if (command_service_map.find(command) != command_service_map.end())
     {
+        // printf("11111");
         code = 0;
         Kernel::Instance().GetUser().u_error = 0;
         stringstream ret=(Instance().*(command_service_map[command]))(ss,root);

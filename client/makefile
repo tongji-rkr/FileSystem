@@ -1,6 +1,6 @@
 .PHONY: all clean
 CC = g++ -g
-CFLAG = -c -Wall  -fpermissive
+CFLAG = -c -Wall  -fpermissive -g
 INC_PATH = ../include/
 OBJ_PATH = ./build/obj/
 BUILD_PATH = ./build/
