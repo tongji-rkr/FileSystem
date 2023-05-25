@@ -21,6 +21,7 @@
 #include "RemoteServer.h"
 #include "Services.h"
 #include "Kernel.h"
+#include "cJSON.h"
 #define PORT 8888
 #define BACKLOG 128
 
@@ -107,15 +108,34 @@ public:
         this->fd = fd;
         this->username = username;
     };
+
+    int send_command_to_json(const stringstream& send_str)
+    {
+        cJSON *command = cJSON_CreateObject();
+        cJSON_AddStringToObject(command, "command", send_str.str().c_str());
+        char *command_char = cJSON_Print(command);
+        string command_strs = command_char;
+        int numbytes = send(fd, command_strs.c_str(), command_strs.length(), 0);
+        cout << "[[ " << username << " ]] send " << numbytes << " bytes" << endl;
+        cout << "====message send====" << endl;
+        cout << command_strs << endl;
+        cout << "====================" << endl;
+        return numbytes;
+    }
 };
 
 void *start_routine(void *ptr)
 {
     int fd = *(int *)ptr;
-    char buf[1024];
+    char buf[MAX_PACKAGE_LENGTH];
     int numbytes;
     // numbytes=send(fd,"请输入用户名：",sizeof("请输入用户名："),0);
-    numbytes = server.send_message("please type in the username:", fd);
+    cJSON *welcome = cJSON_CreateObject();
+    cJSON_AddStringToObject(welcome, "command", "please type in the username:");
+    char *welcome_char = cJSON_Print(welcome);
+    string welcome_strs = welcome_char;
+
+    numbytes = server.send_message(welcome_strs, fd);
     if (numbytes == -1)
     {
         cout << "send() error" << endl;
@@ -125,13 +145,15 @@ void *start_routine(void *ptr)
     printf("进入用户线程，fd=%d\n", fd);
 
     memset(buf, 0, sizeof(buf));
-    if ((numbytes = recv(fd, buf, 1024, 0)) == -1)
+    if ((numbytes = recv(fd, buf, MAX_PACKAGE_LENGTH, 0)) == -1)
     {
         cout << ("recv() error\n");
         return (void *)NULL;
     }
-
-    string username = buf;
+    cJSON *root = cJSON_Parse(buf);
+    string username = cJSON_GetObjectItem(root, "command")->valuestring;
+    
+    
     cout << "[info] 用户输入用户名：" << username << endl;
 
     sendU sd(fd, username);
@@ -144,21 +166,48 @@ void *start_routine(void *ptr)
 
     // send the welcome message
     welcome_str << tipswords;
-    sd.send_(welcome_str);
+    // make welcome str to a cjson object
+    // cJSON *welcome = cJSON_CreateObject();
+    // cJSON_AddStringToObject(welcome, "command", welcome_str.str().c_str());
+    // char *welcome_char = cJSON_Print(welcome);
+    // stringstream welcome_stream;
+    // welcome_stream << welcome_char;
+    sd.send_command_to_json(welcome_str);
     bool first_output = true;
     while (true)
     {
-        char buf_recv[1024] = {0};
+        char buf_recv[MAX_PACKAGE_LENGTH] = {0};
 
         // 读取用户输入的命令行
-        if ((numbytes = recv(fd, buf_recv, 1024, 0)) == -1)
+        if ((numbytes = recv(fd, buf_recv, MAX_PACKAGE_LENGTH, 0)) == -1)
         {
             cout << "recv() error" << endl;
             Kernel::Instance().GetUserManager().Logout();
             return (void *)NULL;
         }
+        cout<<"recv from client of "<<numbytes<<" bytes"<<endl;
+        // if(numbytes==0){
+        //     cout<<"recv 0 bytes"<<endl;
+        //     continue;
+        // }
         // 解析命令名称
-        stringstream ss(buf_recv);
+        // cout << "buf_recv : " << buf_recv << endl;
+        cJSON *root = cJSON_Parse(buf_recv);
+        cJSON *command = cJSON_GetObjectItem(root, "command");
+        if (command == NULL)
+        {
+            cout << "command is null" << endl;
+            if (numbytes <= 0)
+            {
+                cout << "[NETWORK] user " << username << " disconnect." << endl;
+                Kernel::Instance().GetUserManager().Logout();
+                return (void *)NULL;
+            }
+            printf("[NETWORK] send %d bytes\n", numbytes);
+            cJSON_Delete(root);
+            continue;
+        }
+        stringstream ss(command->valuestring);
         stringstream send_str;
 
         cout << "buf_recv : " << buf_recv << endl;
@@ -176,7 +225,10 @@ void *start_routine(void *ptr)
         }
 
         int code;
-        send_str = Services::process(api, ss, code);
+        send_str = Services::process(api, ss, code,root);
+        //check whether the root has "content"
+        
+        
         if (code)
         {
             cout << "unrecognized command!" << endl;
@@ -187,6 +239,9 @@ void *start_routine(void *ptr)
         else
         {
             cout << "command finished!" << endl;
+            if(cJSON_GetObjectItem(root,"content")!=NULL){
+                cout<<"the root has content"<<endl;
+            }
         }
 
         // show the prompt with username and current directory
@@ -195,14 +250,39 @@ void *start_routine(void *ptr)
         send_str << tipswords;
 
         // 发送提示
-        numbytes = sd.send_(send_str);
-        if (numbytes <= 0)
+        // cJSON_Delete(root);
+        cJSON *response = cJSON_CreateObject();
+        cJSON_AddStringToObject(response, "command", send_str.str().c_str());
+
+        // check whether the api is "download"
+        if(api=="download")
         {
-            cout << "[NETWORK] user " << username << " disconnect." << endl;
-            Kernel::Instance().GetUserManager().Logout();
-            return (void *)NULL;
+            cout<<"attatch the file content"<<endl;
+            cJSON* file_content_json=cJSON_GetObjectItem(root,"content");
+            if(file_content_json==NULL)
+            {
+                cout<<"file content is null"<<endl;
+                return;
+            }
+            string file_content=cJSON_GetStringValue(file_content_json);
+            cJSON_AddStringToObject(response, "content", file_content.c_str());
+            cout<<"attach file content finished"<<endl;
         }
+        char *response_char = cJSON_Print(response);
+        cout << "response_char : " << response_char << endl;
+        stringstream response_str;
+        response_str << response_char;
+        cout <<response_str.str()<< endl;
+
+        numbytes = sd.send_(response_str);
+        // if (numbytes <= 0)
+        // {
+        //     cout << "[NETWORK] user " << username << " disconnect." << endl;
+        //     Kernel::Instance().GetUserManager().Logout();
+        //     return (void *)NULL;
+        // }
         printf("[NETWORK] send %d bytes\n", numbytes);
+        cJSON_Delete(root);
     }
 
     close(fd);

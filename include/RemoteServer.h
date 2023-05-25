@@ -21,7 +21,7 @@
 
 #define PORT 8888
 #define BACKLOG 128
-#define MAX_PACKAGE_LENGTH 1024
+#define MAX_PACKAGE_LENGTH 2048
 
 class RemoteServer : public ServerInterface
 {

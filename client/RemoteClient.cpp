@@ -16,6 +16,7 @@ RemoteClient::~RemoteClient()
 
 void RemoteClient::send_message(const std::string &msg)
 {
+    // cout<<"send message called"<<endl;
     // check the status
     if (this->status == DISCONNECTED)
     {

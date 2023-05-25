@@ -12,7 +12,9 @@
 #include <signal.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 
+#include "cJSON.h"
 #include "RemoteClient.h"
 
 #define MAXDATASIZE 1024
@@ -30,6 +32,8 @@ const string welcome_string =
 
 // create remote client
 RemoteClient client;
+static bool last_down_load = false;
+static string last_down_load_filename = "";
 
 // void running(int fd)
 // {
@@ -206,28 +210,169 @@ string get_command()
   // 返回用户指令
   return command;
 }
+
+bool process_upload(const string & upload_command, string & content){
+    // parse the command and check whether the parameter is correct and the file exists
+    // format: upload <filename_local> <filename_server>
+    stringstream ss(upload_command);
+    string command;
+    string filename_local;
+    string filename_server;
+    ss>>command>>filename_local>>filename_server;
+    if(filename_local.empty()||filename_server.empty()){
+        cout<<"parameter error"<<endl;
+        return false;
+    }
+    // open the file and read content to string
+    FILE *fp = fopen(filename_local.c_str(),"r");
+    if(fp==NULL){
+        cout<<endl<<"file not exists"<<endl;
+        return false;
+    }
+    char ch;
+    while((ch=fgetc(fp))!=EOF){
+        content+=ch;
+    }
+
+    return true;
+
+}
+
+string get_file_content(const string & filename){
+    string content;
+    FILE *fp = fopen(filename.c_str(),"r");
+    if(fp==NULL){
+        cout<<"file not exists"<<endl;
+        return content;
+    }
+    char ch;
+    while((ch=fgetc(fp))!=EOF){
+        content+=ch;
+    }
+    return content;
+}
+
 void receive_message_handler(const string& message)
 {
-    cout<<message;
-    // prepare the message to send
+    // record whether the last command is download
+
+
+    // cout<<message<<endl;
+
+    // cout<<message;
+    cJSON *display = cJSON_Parse(message.c_str());
+
+
+    if(last_down_load){
+        // write the content to the file
+        cout<<"trying to open file:"<<last_down_load_filename<<endl;
+        FILE *fp = fopen(last_down_load_filename.c_str(),"w+");
+        if(fp==NULL){
+            cout<<"file not exists"<<endl;
+            return;
+        }
+        cJSON* file_content = cJSON_GetObjectItem(display, "content");
+        if(file_content==NULL){
+            cout<<"[ERROR] file content not exists"<<endl;
+            return;
+        }
+        string file_content_str = file_content->valuestring;
+        // cout<<file_content_str<<endl;
+        fprintf(fp,"%s",file_content_str.c_str());
+        fclose(fp);
+        cout<<"[INFO] download file successfully"<<endl;
+        last_down_load = false;
+    }
+
+    // get the command
+    cJSON* display_message = cJSON_GetObjectItem(display, "command");
+    if(display_message==NULL){
+        return;
+    }
+    string display_message_str = display_message->valuestring;
+    cout<<display_message_str;
+    
+    
+
+    
+
     string send_message;
     // getline(cin, send_message);
 
     send_message = get_command();
+    
 
     if (send_message.empty())
     {
         send_message = " ";
     }
 
-    // send the message to server
-    client.send_message(send_message);
+    // prepare the message to send
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command", send_message.c_str());
+    
+    
+
+    // checke whether the command is "upload"
+    // open the file and read content to string
+
+    string content;
+    
+    if(send_message.substr(0,6)=="upload"){
+        bool result = process_upload(send_message,content);
+        cout<<endl<<"doing upload"<<endl;
+        if(!result){
+            // to send a message to server to get a response again
+            cJSON *root_new = cJSON_CreateObject();
+            cJSON_AddStringToObject(root_new, "command", "upload failed");
+            char *final_message = cJSON_Print(root_new);
+            string final_message_str(final_message);
+            // send the message to server
+            client.send_message(final_message_str);
+            return;
+        }
+        cJSON_AddStringToObject(root, "content", content.c_str());
+        char *final_message = cJSON_Print(root);
+        string final_message_str(final_message);
+        // send the message to server
+        client.send_message(final_message_str);
+        cout <<"send json ---"<<endl << final_message_str << endl;  
+        return;
+    }
+    
+    // check whether the command is "download"
+    if(send_message.substr(0,8)=="download"){
+        // get the filename
+        stringstream ss(send_message);
+        string command;
+        string filename_remote,filename_local;
+        ss>>command>>filename_remote>>filename_local;
+        if(filename_local.empty()){
+            cout<<"parameter error"<<endl;
+            cJSON *root_new = cJSON_CreateObject();
+            cJSON_AddStringToObject(root_new, "command", "download failed");
+            char *final_message = cJSON_Print(root_new);
+            string final_message_str(final_message);
+            return;
+        }
+        // record the filename
+        last_down_load_filename = filename_local;
+        last_down_load = true;
+    }
 
     // check whether it is q or Q
     if (send_message == "q" || send_message == "Q")
     {
         client.stop();
     }
+    
+    char *final_message = cJSON_Print(root);
+    string final_message_str(final_message);
+    cout<<"message sent is "<<endl<<final_message_str<<endl;
+    // send the message to server
+    client.send_message(final_message_str);
+
+    
 }
 
 string get_ip_address(){
