@@ -1,8 +1,10 @@
 #include "Kernel.h"
+#include "cJSON.h"
 #include <string.h>
 
 // 全局单体实例
 Kernel Kernel::instance;
+bool Kernel::disk_exist=true;
 
 DiskDriver g_DiskDriver;
 BufferManager g_BufferManager;
@@ -66,6 +68,20 @@ void Kernel::Initialize()
     us.u_cdir->i_flag &= (~Inode::ILOCK);
 	pthread_mutex_unlock(& us.u_cdir->mutex);
     strcpy(us.u_curdir, "/");
+    
+    if(!disk_exist){
+        // create folder
+        string str="/bin";
+        Instance().Sys_CreatDir(str);
+        str="/usr";
+        Instance().Sys_CreatDir(str);
+
+        // create file
+        str="/usr/passwd";
+        Instance().Sys_Creat(str);
+
+
+    }
 
     cout << "Kernel: initialize end" << endl;
 }

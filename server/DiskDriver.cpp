@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <iostream>
+#include <string>
 using namespace std;
 
 DiskDriver::DiskDriver()
@@ -22,8 +23,10 @@ void DiskDriver::Initialize()
 
     // 1. 打开文件
     int fd = open(devpath, O_RDWR);
+    bool exist=true;
     if (fd == -1)
     {
+        // 如果文件不存在，则创建文件
         cout << "DiskDriver: diskfile not found, initializing..." << endl;
         fd = open(devpath, O_RDWR | O_CREAT, 0666);
         if (fd == -1)
@@ -33,7 +36,9 @@ void DiskDriver::Initialize()
         }
         // 对磁盘进行初始化
         this->init_img(fd);
+        
         cout << "DiskDriver: init successfully" <<endl;
+        Kernel::disk_exist=false;
     }
     // 2. mmap
     mmap_img(fd);

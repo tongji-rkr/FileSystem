@@ -120,3 +120,6 @@ User *UserManager::GetUser()
     }
     return pusers[user_addr[pthread_id]];
 }
+
+// void UserManager::insert_user_item(string user_name){
+// }
