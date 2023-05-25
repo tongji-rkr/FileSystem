@@ -15,7 +15,7 @@
 #include <iostream>
 #include <strings.h>
 
-#define MAX_PACKAGE_LENGTH 1024 // the max length of a package
+#define MAX_PACKAGE_LENGTH 1024*16 // the max length of a package
 #define TIME_OUT 3 // the time out of the socket
 
 class RemoteClient : public ClientInterface

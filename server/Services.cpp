@@ -1,4 +1,7 @@
 #include "Services.h"
+#include "base64.h"
+#include <vector>
+
 
 using namespace std;
 
@@ -508,6 +511,8 @@ stringstream Services::upload_service(stringstream &ss,cJSON* root)
 
     // the file content
     string file_content=cJSON_GetObjectItem(root,"content")->valuestring;
+    string file_content_raw=base64_decode(file_content);
+    // cout<<"file_content_raw:"<<file_content_raw<<endl;
     // 创建内部文件
     Kernel::Instance().Sys_Creat(p2_ifpath, 0x1 | 0x2);
     // error
@@ -531,21 +536,22 @@ stringstream Services::upload_service(stringstream &ss,cJSON* root)
         send_str << "[ERROR] failed to open file:" << p2_ifpath << endl;
         return send_str;
     }
-    // 开始拷贝，一次 2048 字节
-    char buf[2048];
-    int all_read_num = file_content.length();
+    // 开始拷贝，一次 256 字节
+    const int buf_size=256;
+    char buf[buf_size];
+    int all_read_num = file_content_raw.length();
     int all_write_num = 0;
     while (true)
     {
         // memset(buf, 0, sizeof(buf));
-        // // int read_num = read(ofd, buf, 256);
+        // // int read_num = read(ofd, buf, buf_size);
         // if (read_num <= 0)
         // {
         //     break;
         // }
         // all_read_num += read_num;
         // int write_num =
-        //     Kernel::Instance().Sys_Write(ifd, read_num, 256, buf);
+        //     Kernel::Instance().Sys_Write(ifd, read_num, buf_size, buf);
         // if (write_num <= 0)
         // {
         //     send_str << "[ERROR] failed to write:" << p2_ifpath;
@@ -554,10 +560,22 @@ stringstream Services::upload_service(stringstream &ss,cJSON* root)
         // all_write_num += write_num;
 
         // write the file content
+        // int write_num =
+        //     Kernel::Instance().Sys_Write(ifd, file_content_raw.length(), buf_size, (void*)file_content_raw.c_str());
+        // all_write_num += write_num;
+        int current_upload_num=min(buf_size,(int)file_content_raw.length()-all_write_num);
         int write_num =
-            Kernel::Instance().Sys_Write(ifd, file_content.length(), 256, (void*)file_content.c_str());
+            Kernel::Instance().Sys_Write(ifd, current_upload_num, buf_size, (void*)(file_content_raw.c_str()+all_write_num));
         all_write_num += write_num;
-        break;
+        if(write_num<=0)
+        {
+            send_str << "[ERROR] failed to write:" << p2_ifpath<<endl;
+            break;
+        }
+        if(all_write_num>=file_content_raw.length())
+        {
+            break;
+        }
     }
     send_str << "Bytes read:" << all_read_num
              << "Bytes written:" << all_write_num << endl;
@@ -631,7 +649,8 @@ stringstream Services::download_service(stringstream &ss,cJSON* root)
     char buf[2048];
     int all_read_num = 0;
     int all_write_num = 0;
-    string file_content;
+    // string file_content;
+    vector<char> file_content;
     while (true)
     {
         memset(buf, 0, sizeof(buf));
@@ -642,12 +661,18 @@ stringstream Services::download_service(stringstream &ss,cJSON* root)
             break;
         }
         all_read_num += read_num;
-        file_content += buf;
+        // file_content += buf;
+        for(int i=0;i<read_num;i++)
+        {
+            file_content.push_back(buf[i]);
+        }
     }
+    cout<<"string byte length:"<<file_content.size()<<endl;
+    string file_content_encode = base64_encode((const unsigned char*)file_content.data(),file_content.size());
     // write the file content
     cout<<"all_read_num:"<<all_read_num<<endl;
-    cout<<"write file content to cjson:"<<file_content<<endl;
-    cJSON_AddStringToObject(root,"content",file_content.c_str());
+    cout<<"write file content to cjson:"<<file_content_encode<<endl;
+    cJSON_AddStringToObject(root,"content",file_content_encode.c_str());
     return send_str;
 }
 

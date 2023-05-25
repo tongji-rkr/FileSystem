@@ -16,8 +16,8 @@
 
 #include "cJSON.h"
 #include "RemoteClient.h"
+#include "base64.h"
 
-#define MAXDATASIZE 1024
 
 using namespace std;
 
@@ -211,6 +211,29 @@ string get_command()
   return command;
 }
 
+string get_file_string(std::string path){
+    //打开文件
+    int fd = open(path.c_str(), O_RDWR);
+    if (fd == -1) {
+        perror("open");
+        exit(1);
+    }
+    //获取文件大小
+    int fileSize = lseek(fd, 0, SEEK_END);
+    if (fileSize == -1) {
+        perror("lseek");
+        exit(1);
+    }
+    
+    //读取文件内容
+    char *buf = new char[fileSize];
+    lseek(fd, 0, SEEK_SET);
+    int ret = read(fd, buf, fileSize);
+    string raw_str=string(buf, fileSize);
+    string str_base64 = base64_encode(reinterpret_cast<const unsigned char*>(raw_str.c_str()), raw_str.length());
+    return str_base64;
+}
+
 bool process_upload(const string & upload_command, string & content){
     // parse the command and check whether the parameter is correct and the file exists
     // format: upload <filename_local> <filename_server>
@@ -223,16 +246,17 @@ bool process_upload(const string & upload_command, string & content){
         cout<<"parameter error"<<endl;
         return false;
     }
-    // open the file and read content to string
-    FILE *fp = fopen(filename_local.c_str(),"r");
-    if(fp==NULL){
-        cout<<endl<<"file not exists"<<endl;
-        return false;
-    }
-    char ch;
-    while((ch=fgetc(fp))!=EOF){
-        content+=ch;
-    }
+    // // open the file and read content to string
+    // FILE *fp = fopen(filename_local.c_str(),"r");
+    // if(fp==NULL){
+    //     cout<<endl<<"file not exists"<<endl;
+    //     return false;
+    // }
+    // char ch;
+    // while((ch=fgetc(fp))!=EOF){
+    //     content+=ch;
+    // }
+    content = get_file_string(filename_local);
 
     return true;
 
@@ -252,6 +276,8 @@ string get_file_content(const string & filename){
     return content;
 }
 
+
+
 void receive_message_handler(const string& message)
 {
     // record whether the last command is download
@@ -266,11 +292,7 @@ void receive_message_handler(const string& message)
     if(last_down_load){
         // write the content to the file
         cout<<"trying to open file:"<<last_down_load_filename<<endl;
-        FILE *fp = fopen(last_down_load_filename.c_str(),"w+");
-        if(fp==NULL){
-            cout<<"file not exists"<<endl;
-            return;
-        }
+        int fd = open(last_down_load_filename.c_str(), O_RDWR|O_CREAT, 0666);
         cJSON* file_content = cJSON_GetObjectItem(display, "content");
         if(file_content==NULL){
             cout<<"[ERROR] file content not exists"<<endl;
@@ -278,8 +300,12 @@ void receive_message_handler(const string& message)
         }
         string file_content_str = file_content->valuestring;
         // cout<<file_content_str<<endl;
-        fprintf(fp,"%s",file_content_str.c_str());
-        fclose(fp);
+        string file_content_str_decode = base64_decode(file_content_str);
+        int ret = write(fd, file_content_str_decode.c_str(), file_content_str_decode.size());
+        if(ret==-1){
+            cout<<"[ERROR] write file failed"<<endl;
+            return;
+        }
         cout<<"[INFO] download file successfully"<<endl;
         last_down_load = false;
     }
