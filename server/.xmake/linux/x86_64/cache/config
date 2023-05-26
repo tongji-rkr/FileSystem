@@ -1,0 +1,7 @@
+{
+    mtimes = { },
+    options = {
+        trybuild = "make"
+    },
+    recheck = false
+}

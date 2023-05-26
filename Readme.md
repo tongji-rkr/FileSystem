@@ -1,16 +1,34 @@
-# MultiUser-secondFileSystem
-- 同济大学操作系统课程设计（邓蓉）
-- 基于Unix v6++源码移植的多用户二级文件系统
-- 带有缓存层的文件系统
-- 支持多用户同时使用的文件系统
-- Linux操作系统
-## 使用教程
-1. 运行server
-- 删除 c.img 文件（可选）
-- 在 MultiUser-secondFileSytem 目录中运行 `make`
-- 在 MultiUser-secondFileSytem 目录中运行 `./secondFileSystem`
-2. 运行client
-- 在client目录中运行 `make`
-- 在client目录中运行 `./clinet 127.0.0.1 1235`
-- 输入用户名
 # FileSystem
+This is a simple secondary file system implemented in C++, following the design of the UNIX-like file system.
+
+This file system is capable of handling multiple clients concurrently. 
+
+# Requirements
+This project is developed and tested on Ubuntu 20.04.
+
+
+# Build
+To build this project, you need to satisfy the following requirements:
+- make
+- build-essential
+
+To build the server, please change your current directory to the server directory and run the following commands:
+```bash
+$ make
+```
+
+To build the client, please change your current directory to the client directory and run the following commands:
+```bash
+$ make
+```
+
+# Run
+To run this project, you should run the server first through the following command:
+```bash
+$ ./server/build/FileSystemServer
+```
+
+Then, you can run the client through the following command:
+```bash
+$ ./client/build/FileSystemClient
+```

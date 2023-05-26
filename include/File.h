@@ -44,7 +44,7 @@ class OpenFiles
 {
 	/* static members */
 public:
-	static const int NOFILES = 15;	/* 进程允许打开的最大文件数 */
+	static const int NOFILES = 100;	/* 进程允许打开的最大文件数 */
 	
 	/* Functions */
 public:

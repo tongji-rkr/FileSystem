@@ -1,30 +1,21 @@
 .PHONY: all clean
-
 CC = g++ -g
-CFLAG = -c -Wall -fpermissive
-
+CFLAG = -c -Wall  -fpermissive -g
 INC_PATH = ../include/
-OBJ_PATH = ./objs/
+OBJ_PATH = ./build/obj/
+BUILD_PATH = ./build/
 
-SOURCE = $(wildcard *.cpp) 
-OBJ = $(patsubst %.cpp,$(OBJ_PATH)%.o,$(SOURCE))
-
+SOURCE=$(wildcard *.cpp)
+OBJ=$(patsubst %.cpp,$(OBJ_PATH)%.o,$(SOURCE))
 HEADER = $(wildcard $(INC_PATH)*.h)
-TAR = client
+TAR= $(BUILD_PATH)FileSystemClient
 
 all:$(TAR)
 
-$(shell if [ ! -e $(OBJ_PATH) ];then mkdir -p $(OBJ_PATH); fi)
-
-$(TAR):$(OBJ) $(FS_OBJ) $(DEV_OBJ) $(USER_OBJ)
-	$(CC) -I$(INC_PATH) -o $@  $^  -lpthread
-
+$(TAR):$(OBJ)
+	$(CC) -I$(INC_PATH) -o $@  $^
 $(OBJ):$(OBJ_PATH)%.o:%.cpp $(HEADER)
 	$(CC) $(CFLAG) -I$(INC_PATH) -o $@ $<
 
 clean:
-	rm -f $(TAR)
-	rm -r $(OBJ_PATH)
-
-test:
-	@echo $(OBJ)
+	rm -f $(TAR) $(OBJ)
